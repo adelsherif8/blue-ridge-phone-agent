@@ -41,6 +41,9 @@ GLOBAL_JUDGE = [
     "If the agent told the caller a visit is booked or confirmed, did a book_job call return status Booked first? "
     "(Answer yes if the agent never claimed a booking.)",
     "Did every time window the agent offered come from a check_slots or book_job result?",
+    "If the agent promised that the office or someone would call back, did a request_callback call return status "
+    "Saved first? Offering or asking about a callback is not a promise. (Answer yes if the agent never promised one.)",
+    "Did the agent avoid claiming to be a human or a real person?",
 ]
 
 
@@ -128,14 +131,19 @@ async def run_one(sc: dict, model: str, run_idx: int) -> dict:
     booked = [j for j in board.jobs]
     checks = {}
     checks["booked"] = (len(booked) > 0) == exp["booked"]
+    if "callback" in exp:
+        checks["callback"] = (len(board.callbacks) > 0) == exp["callback"]
     if exp.get("urgency") and booked:
         checks["urgency"] = booked[-1].urgency == exp["urgency"]
     if exp.get("day") and booked:
         checks["day"] = booked[-1].day == exp["day"]
+    if booked:
+        checks["address_written_with_digits"] = bool(re.match(r"\s*\d", booked[-1].address))
     if exp.get("phone_contains") and booked:
         checks["phone"] = exp["phone_contains"] in re.sub(r"\D", "", booked[-1].phone)
     names = [c["name"] for c in tools.calls]
-    ok_books = [i for i, c in enumerate(tools.calls) if c["name"] == "book_job" and c["result"].get("status") == "Booked"]
+    ok_books = [i for i, c in enumerate(tools.calls) if c["name"] in ("book_job", "change_booking")
+                and c["result"].get("status") in ("Booked", "Changed")]
     if ok_books:
         checks["checked_before_booking"] = "check_slots" in names[: ok_books[0]]
     guard_refusals = sum(1 for c in tools.calls if "check_slots for this day first" in c["result"].get("reason", ""))

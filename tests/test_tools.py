@@ -121,8 +121,9 @@ def test_tools_use_caller_id_when_no_phone_given_and_never_log_phone():
     args.pop("phone")
     assert t.run("book_job", args)["status"] == "Booked"
     assert t.board.jobs[0].phone == "+15559876543"
-    t.run("book_job", job(window="12-2", phone="555 000 1111"))
-    assert t.board.jobs[1].phone == "+15550001111"
+    t2 = checked(Tools(board_at(9), caller_id="+15559876543"))
+    t2.run("book_job", job(window="12-2", phone="555 000 1111"))
+    assert t2.board.jobs[0].phone == "+15550001111"
     assert all("phone" not in c["args"] for c in t.calls)
 
 
@@ -140,7 +141,7 @@ def test_unknown_tool():
 
 def test_openai_tool_schema_shape():
     specs = Tools(board_at(9)).openai_tools()
-    assert [s["function"]["name"] for s in specs] == ["check_slots", "book_job"]
+    assert [s["function"]["name"] for s in specs] == ["check_slots", "book_job", "change_booking", "request_callback"]
     assert specs[1]["function"]["parameters"]["required"][:3] == ["name", "address", "problem"]
 
 
@@ -181,3 +182,53 @@ def test_phone_normalization(raw, e164):
 def test_incomplete_phone_is_not_booked():
     r = board_at(9).book_job(**job(phone="555 0142"))
     assert r["status"] == "Not booked" and "ten-digit" in r["reason"]
+
+
+def test_request_callback_saves_with_caller_id_and_needs_reason():
+    t = Tools(board_at(9), caller_id="+18285550199")
+    r = t.run("request_callback", {"name": "Joyce", "reason": "Owner to discuss last month's quote"})
+    assert r["status"] == "Saved" and r["ref"].startswith("CB-")
+    assert t.board.callbacks[0]["phone"] == "+18285550199"
+    assert t.run("request_callback", {"name": "Joyce", "reason": " "})["status"] == "Not saved"
+
+
+def test_request_callback_hidden_caller_id_needs_phone():
+    t = Tools(board_at(9), caller_id=None)
+    assert t.run("request_callback", {"name": "Al", "reason": "quote"})["status"] == "Not saved"
+    assert t.run("request_callback", {"name": "Al", "reason": "quote", "phone": "828-555-0100"})["status"] == "Saved"
+
+
+def test_prompt_says_agent_is_ai():
+    assert "not a person" in SYSTEM_PROMPT and "virtual assistant" in SYSTEM_PROMPT
+
+
+
+def test_change_booking_moves_job_and_frees_old_window():
+    t = checked(Tools(board_at(9), caller_id="+15559876543"))
+    jid = t.run("book_job", job(window="8-10"))["job_id"]
+    luis_before = dict(t.board.slots["tomorrow"]["Luis, truck 3"])
+    assert "8-10" in luis_before  # Luis was the only free truck tomorrow 8-10
+    r = t.run("change_booking", {"job_id": jid, "day": "tomorrow", "window": "12-2"})
+    assert r["status"] == "Changed" and t.board.jobs[0].window == "12-2" and len(t.board.jobs) == 1
+    assert "8-10" in t.board.open_windows("tomorrow")  # old window freed
+
+
+def test_second_book_job_in_one_call_is_refused():
+    t = checked(Tools(board_at(9), caller_id="+15559876543"))
+    jid = t.run("book_job", job())["job_id"]
+    r = t.run("book_job", job(window="12-2"))
+    assert r["status"] == "Not booked" and jid in r["reason"] and len(t.board.jobs) == 1
+
+
+def test_change_booking_only_for_this_calls_jobs_and_open_windows():
+    b = board_at(9)
+    other = checked(Tools(b, caller_id="+15550000001"))
+    other_id = other.run("book_job", job())["job_id"]
+    me = checked(Tools(b, caller_id="+15550000002"))
+    assert me.run("change_booking", {"job_id": other_id, "day": "tomorrow", "window": "12-2"})["status"] == "Not changed"
+    mine = me.run("book_job", job(window="12-2"))["job_id"]
+    for name in ("Mike, truck 1", "Luis, truck 3"):  # close tomorrow 4-6 entirely (Dave is free there)
+        b.slots["tomorrow"][name]["4-6"] = "x"
+    b.slots["tomorrow"]["Dave, truck 2"]["4-6"] = "x"
+    r = me.run("change_booking", {"job_id": mine, "day": "tomorrow", "window": "4-6"})
+    assert r["status"] == "Not changed" and b.jobs[1].window == "12-2"

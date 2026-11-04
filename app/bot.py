@@ -1,6 +1,7 @@
 """Pipecat voice pipeline for one phone call: Blue Ridge Plumbing receptionist."""
 
 import os
+import time
 from datetime import datetime
 
 from loguru import logger
@@ -57,10 +58,14 @@ async def run_bot(transport, runner_args: RunnerArguments, caller_id: str | None
     schemas = [FunctionSchema(name=s["name"], description=s["description"], properties=s["properties"],
                               required=s["required"], handler=handle) for s in TOOL_SPECS]
 
+    last_filler = [0.0]
+
     @llm.event_handler("on_function_calls_started")
     async def on_tools(service, function_calls):
+        # At most one filler per caller turn: chained tool calls inside one turn stay quiet.
         filler = FILLERS.get(function_calls[0].function_name) if function_calls else None
-        if filler:
+        if filler and time.monotonic() - last_filler[0] > 8:
+            last_filler[0] = time.monotonic()
             await service.push_frame(TTSSpeakFrame(filler, append_to_context=False))
 
     context = LLMContext(

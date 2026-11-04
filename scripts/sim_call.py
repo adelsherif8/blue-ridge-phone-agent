@@ -1,13 +1,11 @@
-"""Simulated phone caller: speaks to the bot over the same WebSocket protocol
-Twilio Media Streams uses, without the phone network.
+"""Simulated phone call: an LLM caller talks to the bot over Twilio's Media Streams protocol.
 
-1. POST /voice with a valid Twilio signature -> get the stream token from TwiML.
-2. Open /ws, send Twilio "connected" + "start" events with that token.
-3. Stream caller lines (Deepgram TTS, 8 kHz mu-law) in real time, with silence
-   between turns, and record everything the bot sends back.
-4. Transcribe the bot's audio with Deepgram and print the conversation.
+No phone network. The caller's lines are spoken with Deepgram TTS (8 kHz mu-law),
+streamed to /ws in real time; the bot's audio is collected, a turn ends after
+SILENCE_GAP seconds of no bot audio, and the turn is transcribed with Deepgram
+and handed to the caller LLM, which picks the next line.
 
-Usage: uv run python scripts/sim_call.py [--port 8790]
+Usage: uv run python scripts/sim_call.py [--scenario routine_booking] [--port 8790]
 """
 
 import argparse
@@ -16,22 +14,33 @@ import base64
 import json
 import os
 import re
+import sys
+import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 import websockets
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 from twilio.request_validator import RequestValidator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from evals.scenarios import SCENARIOS  # noqa: E402
 
 load_dotenv(".env")
 DG = os.environ["DEEPGRAM_API_KEY"]
-CALLER_LINES = [
-    "Hi, my kitchen sink is leaking under the cabinet. Can someone take a look?",
-    "Okay. What area do you cover?",
-    "Great, thanks. Bye.",
-]
 FRAME = 160  # 20 ms of 8 kHz mu-law
 SILENCE = b"\xff" * FRAME
+SILENCE_GAP = 2.0  # seconds of bot silence that end its turn
+TURN_TIMEOUT = 25.0
+MAX_TURNS = 14
+CALLER_RULES = (
+    "You are a person on the phone with Blue Ridge Plumbing. Speak in one or two short spoken sentences, no "
+    "symbols. Answer only what is asked. Stick to your role. Never hang up while waiting for an answer. When the "
+    "agent has finished and you have said goodbye, end your line with [HANGUP]."
+)
+oai = AsyncOpenAI()
 
 
 def tts(text: str) -> bytes:
@@ -44,72 +53,93 @@ def tts(text: str) -> bytes:
 
 
 def stt_mulaw(audio: bytes) -> str:
+    if len(audio) < 1600:
+        return ""
     req = urllib.request.Request(
         "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&encoding=mulaw&sample_rate=8000",
-        data=audio,
-        headers={"Authorization": f"Token {DG}", "Content-Type": "audio/mulaw"},
+        data=audio, headers={"Authorization": f"Token {DG}", "Content-Type": "audio/mulaw"},
     )
     r = json.load(urllib.request.urlopen(req))
     return r["results"]["channels"][0]["alternatives"][0]["transcript"]
 
 
-def get_token(port: int) -> str:
+def get_token(port: int, caller: str) -> str:
     public = os.environ["PUBLIC_URL"].rstrip("/") + "/voice"
-    form = {"CallSid": "CAsimulated", "From": "+15550000000", "To": os.environ.get("TWILIO_PHONE_NUMBER", "")}
+    form = {"CallSid": "CAsimulated", "From": caller, "To": os.environ.get("TWILIO_PHONE_NUMBER", "")}
     sig = RequestValidator(os.environ["TWILIO_AUTH_TOKEN"]).compute_signature(public, form)
-    req = urllib.request.Request(
-        f"http://127.0.0.1:{port}/voice", data=urllib.parse.urlencode(form).encode(), headers={"X-Twilio-Signature": sig}
-    )
-    twiml = urllib.request.urlopen(req).read().decode()
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    req = urllib.request.Request(f"http://127.0.0.1:{port}/voice", data=urllib.parse.urlencode(form).encode(),
+                                 headers={"X-Twilio-Signature": sig})
+    twiml = opener.open(req).read().decode()
     return re.search(r'name="token" value="([^"]+)"', twiml).group(1)
 
 
-async def main(port: int):
-    token = get_token(port)
-    caller_audio = [tts(t) for t in CALLER_LINES]
-    bot_turns: list[bytearray] = [bytearray()]
+async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
+    caller_id = scenario.get("caller_id", "+18285550199") or ""
+    token = get_token(port, caller_id)
     sid = "MZsimulated"
+    inbox = bytearray()
+    last_audio = [0.0]
+    lines: list[tuple[str, str]] = []
+    caller_msgs = [{"role": "system", "content": f"{CALLER_RULES}\n\nYOUR ROLE: {scenario['caller']}"}]
 
-    async with websockets.connect(f"ws://127.0.0.1:{port}/ws") as ws:
+    async with websockets.connect(f"ws://127.0.0.1:{port}/ws", proxy=None) as ws:
         await ws.send(json.dumps({"event": "connected", "protocol": "Call", "version": "1.0.0"}))
-        await ws.send(json.dumps({"event": "start", "sequenceNumber": "1", "streamSid": sid,
-                                  "start": {"streamSid": sid, "callSid": "CAsimulated", "accountSid": "AC",
-                                            "tracks": ["inbound"], "customParameters": {"token": token},
-                                            "mediaFormat": {"encoding": "audio/x-mulaw", "sampleRate": 8000, "channels": 1}}}))
+        await ws.send(json.dumps({"event": "start", "sequenceNumber": "1", "streamSid": sid, "start": {
+            "streamSid": sid, "callSid": "CAsimulated", "accountSid": "AC", "tracks": ["inbound"],
+            "customParameters": {"token": token, "caller": caller_id},
+            "mediaFormat": {"encoding": "audio/x-mulaw", "sampleRate": 8000, "channels": 1}}}))
 
         async def reader():
             async for msg in ws:
                 m = json.loads(msg)
                 if m.get("event") == "media":
-                    bot_turns[-1].extend(base64.b64decode(m["media"]["payload"]))
+                    inbox.extend(base64.b64decode(m["media"]["payload"]))
+                    last_audio[0] = time.monotonic()
 
         rtask = asyncio.create_task(reader())
 
-        async def send_audio(audio: bytes):
+        async def send(audio: bytes):
             for i in range(0, len(audio), FRAME):
-                chunk = audio[i:i + FRAME].ljust(FRAME, b"\xff")
-                await ws.send(json.dumps({"event": "media", "streamSid": sid,
-                                          "media": {"payload": base64.b64encode(chunk).decode()}}))
+                await ws.send(json.dumps({"event": "media", "streamSid": sid, "media": {
+                    "payload": base64.b64encode(audio[i:i + FRAME].ljust(FRAME, b"\xff")).decode()}}))
                 await asyncio.sleep(0.02)
 
-        await send_audio(SILENCE * 300)  # 6 s: let the greeting play
-        for audio in caller_audio:
-            bot_turns.append(bytearray())
-            await send_audio(audio)
-            await send_audio(SILENCE * 400)  # 8 s for the bot to answer
+        async def bot_turn() -> str:
+            """Keep the line open with silence until the bot has spoken and gone quiet."""
+            start = time.monotonic()
+            inbox.clear()
+            while time.monotonic() - start < TURN_TIMEOUT:
+                await send(SILENCE * 10)
+                if inbox and time.monotonic() - last_audio[0] > SILENCE_GAP:
+                    break
+            return stt_mulaw(bytes(inbox))
+
+        for _ in range(MAX_TURNS):
+            heard = await bot_turn()
+            lines.append(("AGENT", heard or "(silence)"))
+            caller_msgs.append({"role": "user", "content": heard or "(silence on the line)"})
+            c = await oai.chat.completions.create(model="gpt-4.1", messages=caller_msgs, temperature=0.7)
+            said = c.choices[0].message.content or ""
+            caller_msgs.append({"role": "assistant", "content": said})
+            clean = said.replace("[HANGUP]", "").strip()
+            lines.append(("CALLER", clean))
+            await send(tts(clean))
+            if "[HANGUP]" in said:
+                lines.append(("AGENT", await bot_turn() or "(silence)"))
+                break
         await ws.send(json.dumps({"event": "stop", "streamSid": sid}))
         await asyncio.sleep(1)
         rtask.cancel()
-
-    print("--- simulated call ---")
-    for i, turn in enumerate(bot_turns):
-        if i > 0:
-            print(f"CALLER: {CALLER_LINES[i - 1]}")
-        text = stt_mulaw(bytes(turn)) if len(turn) > 1600 else "(no audio)"
-        print(f"BOT:    {text}")
+    return lines
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
+    ap.add_argument("--scenario", default="routine_booking")
     ap.add_argument("--port", type=int, default=int(os.getenv("PORT", "8790")))
-    asyncio.run(main(ap.parse_args().port))
+    a = ap.parse_args()
+    sc = next(s for s in SCENARIOS if s["id"] == a.scenario)
+    print(f"--- simulated voice call: {sc['id']} ---")
+    for who, text in asyncio.run(run(sc, a.port)):
+        print(f"{who:6}: {text}")

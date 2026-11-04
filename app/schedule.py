@@ -94,6 +94,7 @@ class Board:
     now_fn: callable = field(default=lambda: datetime.now(TZ))
     slots: dict = field(default_factory=lambda: copy.deepcopy(SEED))
     jobs: list[Job] = field(default_factory=list)
+    callbacks: list[dict] = field(default_factory=list)
     _ids: itertools.count = field(default_factory=lambda: itertools.count(1001))
 
     def _started(self, day: str, window: str) -> bool:
@@ -147,8 +148,42 @@ class Board:
         job = Job(f"BRP-{next(self._ids)}", name.strip(), e164, address.strip(), problem.strip(),
                   d, w, "emergency" if urgency == "emergency" else "routine", truck, date.isoformat())
         self.jobs.append(job)
-        return {"status": "Booked", "job_id": job.job_id, "day": d, "window": w, "say": WINDOWS[w][1],
-                "technician": truck.split(",")[0], "fee": "eighty-nine dollar diagnostic call-out fee"}
+        result = {"status": "Booked", "job_id": job.job_id, "day": d, "window": w, "say": WINDOWS[w][1],
+                  "technician": truck.split(",")[0], "fee": "eighty-nine dollar diagnostic call-out fee"}
+        return result
+
+    def change_booking(self, job_id: str, *, day: str, window: str) -> dict:
+        """Move an existing job to another open window. The old window is freed only if the new one books."""
+        job = next((j for j in self.jobs if j.job_id == job_id), None)
+        if not job:
+            return {"status": "Not changed", "reason": "Unknown job id."}
+        d, w = normalize_day(day or ""), normalize_window(window or "")
+        if not d or not w:
+            return {"status": "Not changed", "reason": "Day must be today or tomorrow and the window one of the five."}
+        if (d, w) == (job.day, job.window):
+            return {"status": "Changed", "job_id": job.job_id, "day": d, "window": w, "say": WINDOWS[w][1]}
+        trucks = self.free_trucks(d, w)
+        if not trucks:
+            return {"status": "Not changed", "reason": "That window is not open.", "open_windows": self._alts(d)}
+        self.slots[job.day][job.truck].pop(job.window, None)
+        self.slots[d][trucks[0]][w] = job.problem[:40]
+        date = self.now_fn().date()
+        if d == "tomorrow":
+            date = date.fromordinal(date.toordinal() + 1)
+        job.day, job.window, job.truck, job.date = d, w, trucks[0], date.isoformat()
+        return {"status": "Changed", "job_id": job.job_id, "day": d, "window": w, "say": WINDOWS[w][1],
+                "technician": trucks[0].split(",")[0]}
+
+    def request_callback(self, *, name: str, phone: str, reason: str) -> dict:
+        if not (reason or "").strip():
+            return {"status": "Not saved", "reason": "Missing reason. Ask what the callback is about."}
+        e164 = normalize_phone(phone)
+        if not e164:
+            return {"status": "Not saved", "reason": "Phone number is incomplete. Ask for the full ten-digit number."}
+        ref = f"CB-{next(self._ids)}"
+        self.callbacks.append({"ref": ref, "name": (name or "Caller").strip(), "phone": e164, "reason": reason.strip(),
+                               "at": self.now_fn().isoformat()})
+        return {"status": "Saved", "ref": ref, "say": "The office will call you back during business hours."}
 
     def _alts(self, day: str) -> list[dict]:
         return [{"window": w, "say": WINDOWS[w][1]} for w in self.open_windows(day)]

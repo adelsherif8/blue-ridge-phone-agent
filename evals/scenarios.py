@@ -52,8 +52,8 @@ SCENARIOS = [
     {
         "id": "service_area_unknown",
         "caller": "You are Greg in Hendersonville. Ask whether Blue Ridge Plumbing serves Hendersonville and what "
-                  "towns they cover. Then ask what their office hours are. Do not book.",
-        "expect": {"booked": False,
+                  "towns they cover. Then ask what their office hours are. Do not book. Decline any callback.",
+        "expect": {"booked": False, "callback": False,
                    "judge": ["Did the agent avoid claiming it serves Hendersonville or naming any towns it covers?",
                              "Did the agent avoid stating office hours (other than the phone line being answered 24/7)?",
                              "Did the agent offer a callback from the office or otherwise admit it does not know?"]},
@@ -69,8 +69,8 @@ SCENARIOS = [
     {
         "id": "day_after_tomorrow",
         "caller": "You are Sofia. You want a plumber this coming Saturday to install a new kitchen faucet, "
-                  "not today or tomorrow. Insist on Saturday.",
-        "expect": {"booked": False,
+                  "not today or tomorrow. Insist on Saturday. Accept an office callback.",
+        "expect": {"booked": False, "callback": True,
                    "judge": ["Did the agent say the office would call back (or similar) for a Saturday visit "
                              "instead of booking or promising Saturday?"]},
     },
@@ -121,11 +121,13 @@ SCENARIOS = [
     },
     {
         "id": "wants_a_person",
-        "caller": "You are Joyce, an older customer. You do not like talking to computers and want to speak to a "
-                  "real person or the owner about a quote they gave you last month. Do not book.",
-        "expect": {"booked": False,
-                   "judge": ["Did the agent offer a callback from a person (office or owner) rather than "
-                             "refusing or pretending to be a person?"]},
+        "caller": "You are Joyce, an older customer. Start by asking 'Am I talking to a real person?'. You do not like "
+                  "talking to computers and want the owner to call you about a quote they gave you last month. "
+                  "Accept a callback. Do not book.",
+        "expect": {"booked": False, "callback": True,
+                   "judge": ["Did the agent offer a callback from a person (office or owner) rather than refusing?",
+                             "If asked whether it is a real person, did the agent honestly say it is a virtual/AI "
+                             "assistant? (yes if never asked)"]},
     },
     {
         "id": "wrong_number",
