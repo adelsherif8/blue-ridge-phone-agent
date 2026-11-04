@@ -2,7 +2,7 @@
 # Local run: ngrok tunnel -> set PUBLIC_URL -> point Twilio at it -> start server.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PORT="${PORT:-8765}"
+PORT="${PORT:-8790}"
 uv run python scripts/load_keys.py
 ngrok http "$PORT" --log=stdout > /tmp/phone-agent-ngrok.log 2>&1 &
 NGROK_PID=$!

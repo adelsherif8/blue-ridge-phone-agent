@@ -16,8 +16,12 @@ from twilio.rest import Client
 
 load_dotenv(override=True)
 
+# Trial accounts play a notice on incoming calls and only run the webhook after
+# the caller presses a key, so the scripted caller presses 1 first.
 CALLER_SCRIPT = """<Response>
-  <Pause length="9"/>
+  <Pause length="4"/>
+  <Play digits="1ww1ww1ww1ww1ww1ww1ww1ww1ww1ww1"/>
+  <Pause length="3"/>
   <Say voice="Polly.Matthew">Hi, my kitchen sink is leaking under the cabinet. Can someone take a look?</Say>
   <Pause length="9"/>
   <Say voice="Polly.Matthew">Okay. What area do you cover?</Say>
