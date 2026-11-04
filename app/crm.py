@@ -91,14 +91,15 @@ class HubSpot:
         return created["id"], True
 
     async def create_meeting(self, contact_id: str, *, job_id: str, date: str, window: str, problem: str,
-                             address: str, urgency: str) -> str:
+                             address: str, urgency: str, caller_name: str = "") -> str:
         start, end = window_utc(date, window)
         title = f"{'EMERGENCY ' if urgency == 'emergency' else ''}Plumbing visit {job_id}: {problem}"[:200]
         body = {
             "properties": {
                 "hs_timestamp": start,
                 "hs_meeting_title": title,
-                "hs_meeting_body": f"Job {job_id}. Problem: {problem}. Address: {address}. Urgency: {urgency}. "
+                "hs_meeting_body": f"Job {job_id}. Caller: {caller_name or 'not given'}. Problem: {problem}. "
+                                   f"Address: {address}. Urgency: {urgency}. "
                                    "Booked by the Blue Ridge Plumbing phone agent.",
                 "hs_meeting_start_time": start,
                 "hs_meeting_end_time": end,
@@ -124,7 +125,8 @@ class HubSpot:
             meeting_id = job.meeting_id
         else:
             meeting_id = await self.create_meeting(contact_id, job_id=job.job_id, date=job.date, window=job.window,
-                                                   problem=job.problem, address=job.address, urgency=job.urgency)
+                                                   problem=job.problem, address=job.address, urgency=job.urgency,
+                                                   caller_name=job.name)
             job.meeting_id = meeting_id
         logger.info(f"CRM {job.job_id}: contact {contact_id} ({'created' if created else 'updated'}), "
                     f"meeting {meeting_id}, caller {mask_phone(job.phone)}")

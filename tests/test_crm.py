@@ -112,6 +112,8 @@ async def test_returning_caller_is_matched_by_phone_not_duplicated():
     assert res["contact_id"] == "77" and not res["contact_created"]
     assert len(fake.contacts) == 1
     assert fake.contacts["77"]["firstname"] == "Ana Maria"  # stored name kept, STT spelling ignored
+    body = fake.meetings[res["meeting_id"]]["properties"]["hs_meeting_body"]
+    assert "Caller: Anna" in body  # ...but the name said on this call is kept on the meeting
     assert fake.contacts["77"]["address"] == "41 Laurel Drive"
 
 
