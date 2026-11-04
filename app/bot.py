@@ -32,9 +32,13 @@ from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams, FastAPIWebsocketTransport
 from pipecat.workers.runner import WorkerRunner
 
+from pipecat.observers.user_bot_latency_observer import UserBotLatencyObserver
+
+from app.calllog import CallLog
 from app.crm import CRMSync, HubSpot
 from app.facts import GREETING, SYSTEM_PROMPT, call_context
 from app.schedule import TZ
+from app.schedule import Board
 from app.state import BOARD
 from app.tools import FILLERS, NO_FILLER, TOOL_SPECS, Tools
 from app.transfer import TransferAwareTwilioSerializer, redirect_call, transfer_twiml
@@ -68,7 +72,10 @@ class SpeakingTracker(FrameProcessor):
 
 
 async def run_bot(transport, serializer, websocket, runner_args: RunnerArguments, call_sid: str,
-                  caller_id: str | None):
+                  caller_id: str | None, scenario: str | None = None):
+    calllog = CallLog(call_sid, caller_id, scenario)
+    # Simulated test calls get a fresh board so earlier runs cannot fill up the windows.
+    board = Board() if scenario else BOARD
     crm = CRMSync(HubSpot(os.environ["HUBSPOT_TOKEN"]) if os.getenv("HUBSPOT_TOKEN") else None)
     tracker = SpeakingTracker()
     background: list[asyncio.Task] = []
@@ -93,7 +100,7 @@ async def run_bot(transport, serializer, websocket, runner_args: RunnerArguments
 
         background.append(asyncio.create_task(go()))
 
-    tools = Tools(BOARD, caller_id, on_job=crm.submit, on_transfer=on_transfer if transfer_to else None)
+    tools = Tools(board, caller_id, on_job=crm.submit, on_transfer=on_transfer if transfer_to else None)
     logger.info(f"Call started, caller {mask_phone(caller_id)}")
 
     stt = DeepgramSTTService(api_key=os.environ["DEEPGRAM_API_KEY"])
@@ -138,11 +145,22 @@ async def run_bot(transport, serializer, websocket, runner_args: RunnerArguments
     )
 
     pipeline = Pipeline([transport.input(), stt, user_agg, llm, tts, transport.output(), tracker, assistant_agg])
+    latency = UserBotLatencyObserver()
+
+    @latency.event_handler("on_latency_breakdown")
+    async def on_breakdown(observer, breakdown):
+        calllog.add_breakdown(breakdown)
+
+    @latency.event_handler("on_first_bot_speech_latency")
+    async def on_first(observer, secs):
+        calllog.first_speech_secs = round(secs, 3)
+
     worker = PipelineWorker(
         pipeline,
         params=PipelineParams(audio_in_sample_rate=8000, audio_out_sample_rate=8000,
                               enable_metrics=True, enable_usage_metrics=True),
         idle_timeout_secs=runner_args.pipeline_idle_timeout_secs,
+        observers=[latency],
     )
     runner = WorkerRunner(handle_sigint=False, force_gc=True)
     await runner.add_workers(worker)
@@ -163,10 +181,16 @@ async def run_bot(transport, serializer, websocket, runner_args: RunnerArguments
     await runner.run()
     if background:
         await asyncio.gather(*background, return_exceptions=True)
-    for r in await crm.drain():
+    crm_results = await crm.drain()
+    for r in crm_results:
         logger.info(f"CRM result: {r}")
     if crm.crm:
         await crm.crm.aclose()
+    try:
+        calllog.write(messages=context.get_messages(), tool_calls=tools.calls, transfer=tools.transfer,
+                      crm=crm_results, ended_by="transfer" if serializer.transferred else "hangup")
+    except Exception as e:  # never lose the call over logging
+        logger.error(f"Could not save call record: {e}")
 
 
 async def bot(runner_args):
@@ -185,4 +209,5 @@ async def bot(runner_args):
         params=FastAPIWebsocketParams(audio_in_enabled=True, audio_out_enabled=True, add_wav_header=False,
                                       serializer=serializer),
     )
-    await run_bot(transport, serializer, websocket, runner_args, call_data["call_id"], body.get("caller") or None)
+    await run_bot(transport, serializer, websocket, runner_args, call_data["call_id"], body.get("caller") or None,
+                  body.get("scenario") or None)

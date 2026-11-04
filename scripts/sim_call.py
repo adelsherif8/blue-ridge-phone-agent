@@ -63,9 +63,9 @@ def stt_mulaw(audio: bytes) -> str:
     return r["results"]["channels"][0]["alternatives"][0]["transcript"]
 
 
-def get_token(port: int, caller: str) -> str:
+def get_token(port: int, caller: str, call_sid: str = "CAsimulated") -> str:
     public = os.environ["PUBLIC_URL"].rstrip("/") + "/voice"
-    form = {"CallSid": "CAsimulated", "From": caller, "To": os.environ.get("TWILIO_PHONE_NUMBER", "")}
+    form = {"CallSid": call_sid, "From": caller, "To": os.environ.get("TWILIO_PHONE_NUMBER", "")}
     sig = RequestValidator(os.environ["TWILIO_AUTH_TOKEN"]).compute_signature(public, form)
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     req = urllib.request.Request(f"http://127.0.0.1:{port}/voice", data=urllib.parse.urlencode(form).encode(),
@@ -74,10 +74,14 @@ def get_token(port: int, caller: str) -> str:
     return re.search(r'name="token" value="([^"]+)"', twiml).group(1)
 
 
-async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
+async def run(scenario: dict, port: int, call_sid: str = "CAsimulated", client_turns: list | None = None
+              ) -> list[tuple[str, str]]:
+    """client_turns, if given, gets one dict per bot turn: seconds from the end of the caller's audio to the
+    first bot audio byte received (what a caller would perceive, minus the phone network)."""
     caller_id = scenario.get("caller_id", "+18285550199") or ""
-    token = get_token(port, caller_id)
-    sid = "MZsimulated"
+    token = get_token(port, caller_id, call_sid)
+    sid = "MZ" + call_sid[2:]
+    caller_done = [None]
     inbox = bytearray()
     last_audio = [0.0]
     lines: list[tuple[str, str]] = []
@@ -86,16 +90,20 @@ async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
     async with websockets.connect(f"ws://127.0.0.1:{port}/ws", proxy=None) as ws:
         await ws.send(json.dumps({"event": "connected", "protocol": "Call", "version": "1.0.0"}))
         await ws.send(json.dumps({"event": "start", "sequenceNumber": "1", "streamSid": sid, "start": {
-            "streamSid": sid, "callSid": "CAsimulated", "accountSid": "AC", "tracks": ["inbound"],
-            "customParameters": {"token": token, "caller": caller_id},
+            "streamSid": sid, "callSid": call_sid, "accountSid": "AC", "tracks": ["inbound"],
+            "customParameters": {"token": token, "caller": caller_id, "scenario": scenario["id"]},
             "mediaFormat": {"encoding": "audio/x-mulaw", "sampleRate": 8000, "channels": 1}}}))
 
         async def reader():
             async for msg in ws:
                 m = json.loads(msg)
                 if m.get("event") == "media":
+                    now = time.monotonic()
+                    if caller_done[0] is not None and client_turns is not None:
+                        client_turns.append({"secs": round(now - caller_done[0], 3)})
+                        caller_done[0] = None
                     inbox.extend(base64.b64decode(m["media"]["payload"]))
-                    last_audio[0] = time.monotonic()
+                    last_audio[0] = now
 
         rtask = asyncio.create_task(reader())
 
@@ -115,8 +123,12 @@ async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
                     break
             return stt_mulaw(bytes(inbox))
 
+        async def say(audio: bytes):
+            await send(audio)
+            caller_done[0] = time.monotonic()  # caller finished speaking; timer runs until bot audio arrives
+
         try:
-            await converse(lines, caller_msgs, bot_turn, send)
+            await converse(lines, caller_msgs, bot_turn, say)
         except websockets.ConnectionClosed:
             heard = stt_mulaw(bytes(inbox))
             if heard:
