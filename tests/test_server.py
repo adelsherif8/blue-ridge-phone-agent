@@ -1,7 +1,7 @@
 import os
 
-os.environ.setdefault("PUBLIC_URL", "https://example.ngrok-free.app")
-os.environ.setdefault("TWILIO_AUTH_TOKEN", "test-token")
+os.environ["PUBLIC_URL"] = "https://example.ngrok-free.app"
+os.environ["TWILIO_AUTH_TOKEN"] = "test-token"
 
 from fastapi.testclient import TestClient  # noqa: E402
 from twilio.request_validator import RequestValidator  # noqa: E402

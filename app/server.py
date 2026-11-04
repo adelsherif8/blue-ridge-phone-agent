@@ -18,7 +18,7 @@ from twilio.request_validator import RequestValidator
 
 from app.util import mask_phone
 
-load_dotenv(override=True)
+load_dotenv()  # real env vars win over .env
 
 app = FastAPI()
 
