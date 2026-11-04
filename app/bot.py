@@ -73,6 +73,9 @@ async def run_bot(transport, runner_args: RunnerArguments):
     @transport.event_handler("on_client_disconnected")
     async def on_disconnected(transport, client):
         logger.info("Caller hung up")
+        for m in context.get_messages():
+            if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
+                logger.info(f"TRANSCRIPT {m['role']}: {m['content']}")
         await runner.cancel()
 
     await runner.run()
