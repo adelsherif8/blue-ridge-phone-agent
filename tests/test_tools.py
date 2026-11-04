@@ -141,7 +141,7 @@ def test_unknown_tool():
 
 def test_openai_tool_schema_shape():
     specs = Tools(board_at(9)).openai_tools()
-    assert [s["function"]["name"] for s in specs] == ["check_slots", "book_job", "change_booking", "request_callback"]
+    assert [s["function"]["name"] for s in specs] == ["check_slots", "book_job", "change_booking", "transfer_to_human", "request_callback"]
     assert specs[1]["function"]["parameters"]["required"][:3] == ["name", "address", "problem"]
 
 

@@ -84,6 +84,36 @@ async def voice(request: Request):
     return Response(content=twiml, media_type="application/xml")
 
 
+@app.post("/whisper")
+async def whisper(request: Request):
+    """Played to the person who answers the transfer, before the caller is connected."""
+    from app.transfer import whisper_twiml
+
+    if not await _valid_twilio_request(request):
+        return Response(status_code=403)
+    q = request.query_params
+    return Response(content=whisper_twiml(q.get("reason", ""), q.get("summary", "")), media_type="application/xml")
+
+
+@app.post("/transfer-status")
+async def transfer_status(request: Request):
+    """<Dial> action: runs when the transferred leg ends or was never answered."""
+    from app.state import BOARD
+    from app.transfer import status_twiml
+
+    if not await _valid_twilio_request(request):
+        return Response(status_code=403)
+    form = await request.form()
+    q = request.query_params
+    status = form.get("DialCallStatus", "")
+    logger.info(f"Transfer for {form.get('CallSid')} ended: {status} (reason={q.get('reason')})")
+    if status != "completed":
+        saved = BOARD.request_callback(name="Caller", phone=q.get("caller", ""),
+                                       reason=f"Transfer not answered ({q.get('reason')}): {q.get('summary', '')}")
+        logger.info(f"Fallback callback after failed transfer: {saved.get('status')}")
+    return Response(content=status_twiml(status), media_type="application/xml")
+
+
 @app.websocket("/ws")
 async def ws(websocket: WebSocket):
     from pipecat.runner.types import WebSocketRunnerArguments

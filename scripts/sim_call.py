@@ -115,6 +115,23 @@ async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
                     break
             return stt_mulaw(bytes(inbox))
 
+        try:
+            await converse(lines, caller_msgs, bot_turn, send)
+        except websockets.ConnectionClosed:
+            heard = stt_mulaw(bytes(inbox))
+            if heard:
+                lines.append(("AGENT", heard))
+            lines.append(("SYSTEM", "server closed the media stream (bot left the call: transfer)"))
+            rtask.cancel()
+            return lines
+        await ws.send(json.dumps({"event": "stop", "streamSid": sid}))
+        await asyncio.sleep(1)
+        rtask.cancel()
+    return lines
+
+
+async def converse(lines, caller_msgs, bot_turn, send):
+    if True:
         for _ in range(MAX_TURNS):
             heard = await bot_turn()
             lines.append(("AGENT", heard or "(silence)"))
@@ -128,10 +145,6 @@ async def run(scenario: dict, port: int) -> list[tuple[str, str]]:
             if "[HANGUP]" in said:
                 lines.append(("AGENT", await bot_turn() or "(silence)"))
                 break
-        await ws.send(json.dumps({"event": "stop", "streamSid": sid}))
-        await asyncio.sleep(1)
-        rtask.cancel()
-    return lines
 
 
 if __name__ == "__main__":

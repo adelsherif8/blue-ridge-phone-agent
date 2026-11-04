@@ -44,6 +44,10 @@ GLOBAL_JUDGE = [
     "If the agent promised that the office or someone would call back, did a request_callback call return status "
     "Saved first? Offering or asking about a callback is not a promise. (Answer yes if the agent never promised one.)",
     "Did the agent avoid claiming to be a human or a real person?",
+    "If there was a transfer_to_human TOOL line, is everything in its summary true according to the transcript "
+    "(in particular, no name the caller did not give as their own)? (Answer yes if there was no transfer.)",
+    "If there was a transfer_to_human TOOL line, does the transcript show a clear reason for it (the caller asked for "
+    "a person, an emergency or danger, or the agent could not help)? (Answer yes if there was no transfer.)",
 ]
 
 
@@ -62,18 +66,30 @@ def rule_checks(replies: list[str]) -> dict:
     return out
 
 
-async def bot_turn(model: str, msgs: list, tools: Tools) -> str:
+async def bot_turn(model: str, msgs: list, tools: Tools, events: list) -> str:
+    """Runs one agent turn. `events` gets ("AGENT", text) / ("TOOL", line) in the order the caller experiences
+    them: text that comes with a tool call is spoken before the tool's effect (the voice bot waits for it)."""
     for _ in range(4):
         resp = await client.chat.completions.create(model=model, messages=msgs, tools=tools.openai_tools(),
                                                     temperature=0.3)
         m = resp.choices[0].message
         if not m.tool_calls:
             msgs.append({"role": "assistant", "content": m.content or ""})
+            events.append(("AGENT", m.content or ""))
             return m.content or ""
         msgs.append({"role": "assistant", "content": m.content, "tool_calls": [tc.model_dump() for tc in m.tool_calls]})
+        if m.content:
+            events.append(("AGENT", m.content))
+        transferring = False
         for tc in m.tool_calls:
             result = tools.run(tc.function.name, json.loads(tc.function.arguments or "{}"))
             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result)})
+            transferring |= result.get("status") == "Transferring"
+            safe = {k: v for k, v in json.loads(tc.function.arguments or "{}").items() if k != "phone"}
+            events.append(("TOOL", f"{tc.function.name}({json.dumps(safe)}) -> "
+                                   f"{result.get('status') or ('error' if 'error' in result else 'ok')}"))
+        if transferring:  # voice bot runs no LLM after this: the caller only hears what came with the call
+            return m.content or ""
     msgs.append({"role": "assistant", "content": ""})
     return ""
 
@@ -99,7 +115,7 @@ async def run_one(sc: dict, model: str, run_idx: int) -> dict:
         for truck in board.slots[day]:
             board.slots[day][truck][window] = "Booked"
     caller_id = sc.get("caller_id", DEFAULT_CALLER_ID)
-    tools = Tools(board, caller_id)
+    tools = Tools(board, caller_id, on_transfer=lambda reason, summary: None)
     bot_msgs = [{"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "developer", "content": call_context(NOW, caller_id)},
                 {"role": "assistant", "content": GREETING}]
@@ -115,14 +131,14 @@ async def run_one(sc: dict, model: str, run_idx: int) -> dict:
         clean = said.replace("[HANGUP]", "").strip()
         lines.append(("CALLER", clean))
         bot_msgs.append({"role": "user", "content": clean})
-        n_before = len(tools.calls)
-        reply = await bot_turn(model, bot_msgs, tools)
-        for c in tools.calls[n_before:]:
-            status = c["result"].get("status") or ("ok" if "error" not in c["result"] else "error")
-            lines.append(("TOOL", f"{c['name']}({json.dumps(c['args'])}) -> {status}"))
-        replies.append(reply)
-        lines.append(("AGENT", reply))
-        caller_msgs.append({"role": "user", "content": reply})
+        events: list = []
+        reply = await bot_turn(model, bot_msgs, tools, events)
+        lines.extend(events)
+        replies.append(" ".join(t for who, t in events if who == "AGENT"))
+        caller_msgs.append({"role": "user", "content": replies[-1]})
+        if tools.transfer:
+            lines.append(("SYSTEM", "Caller hears the hold line and is transferred to a person."))
+            break
         if "[HANGUP]" in said:
             break
 
@@ -130,7 +146,20 @@ async def run_one(sc: dict, model: str, run_idx: int) -> dict:
     exp = sc["expect"]
     booked = [j for j in board.jobs]
     checks = {}
-    checks["booked"] = (len(booked) > 0) == exp["booked"]
+    if exp.get("book_or_transfer"):
+        checks["booked_or_handed_off"] = len(booked) > 0 or bool(tools.transfer) or len(board.callbacks) > 0
+    else:
+        checks["booked"] = (len(booked) > 0) == exp["booked"]
+    want = exp.get("transfer")  # None/False = must not transfer; a str or list = allowed reason(s); "optional"
+    if exp.get("handoff"):  # either a transfer or a saved callback is a valid human handoff
+        checks["handed_off"] = bool(tools.transfer) or len(board.callbacks) > 0
+    elif want == "optional":
+        pass
+    elif want:
+        allowed = [want] if isinstance(want, str) else want
+        checks["transferred"] = bool(tools.transfer) and tools.transfer["reason"] in allowed
+    else:
+        checks["no_transfer"] = tools.transfer is None
     if "callback" in exp:
         checks["callback"] = (len(board.callbacks) > 0) == exp["callback"]
     if exp.get("urgency") and booked:

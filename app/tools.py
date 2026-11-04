@@ -40,6 +40,18 @@ TOOL_SPECS = [
         "required": ["job_id", "day", "window"],
     },
     {
+        "name": "transfer_to_human",
+        "description": "Transfer the live call to the on-call person. Use for: the caller wants a person now; an "
+                       "emergency (burst pipe, flooding, sewage, no water) after the safety advice; gas smell or danger "
+                       "after the safety instructions; or when you cannot help after two tries. The system tells the "
+                       "caller to hold; say nothing after calling it.",
+        "properties": {
+            "reason": {"type": "string", "enum": ["caller_request", "emergency", "stuck", "safety"]},
+            "summary": {"type": "string", "description": "One sentence for the person taking the call: who, what, where"},
+        },
+        "required": ["reason", "summary"],
+    },
+    {
         "name": "request_callback",
         "description": "Save a request for a person at the office to call the caller back (owner or person requested, "
                        "questions you cannot answer, visits after tomorrow, quotes).",
@@ -54,15 +66,18 @@ TOOL_SPECS = [
 
 FILLERS = {"check_slots": "One sec, checking the board.", "book_job": "One sec, booking that in.",
            "request_callback": "One sec, noting that for the office.", "change_booking": "One sec, moving that."}
+NO_FILLER = {"transfer_to_human"}  # the transfer has its own hold line
 
 
 class Tools:
     """Runs tool calls for one phone call against a board."""
 
-    def __init__(self, board: Board, caller_id: str | None = None, on_job=None):
+    def __init__(self, board: Board, caller_id: str | None = None, on_job=None, on_transfer=None):
         self.board = board
         self.caller_id = caller_id
         self.on_job = on_job  # called with the Job after a booking or change (CRM sync)
+        self.on_transfer = on_transfer  # called with (reason, summary); None = nobody to transfer to
+        self.transfer: dict | None = None
         self.checked_days: set[str] = set()
         self.booked_ids: list[str] = []  # jobs booked in this call; only these may be changed
         self.calls: list[dict] = []  # every call and result, for the call log and evals
@@ -94,6 +109,20 @@ class Tools:
                 result = {"status": "Not changed", "reason": "Only a visit booked in this call can be changed."}
             else:
                 result = self.board.change_booking(args["job_id"], day=args.get("day", ""), window=args.get("window", ""))
+        elif name == "transfer_to_human":
+            reason, summary = args.get("reason", ""), (args.get("summary") or "").strip()
+            if self.transfer:
+                result = {"status": "Already transferring"}
+            elif reason not in ("caller_request", "emergency", "stuck", "safety") or not summary:
+                result = {"status": "Not transferred", "reason": "Give a valid reason and a one-sentence summary."}
+            elif not self.on_transfer:
+                result = {"status": "Unavailable",
+                          "reason": "No one can take a transfer right now. Offer a callback from the office instead."}
+            else:
+                self.transfer = {"reason": reason, "summary": summary}
+                logger.info(f"TRANSFER reason={reason} summary={summary}")
+                self.on_transfer(reason, summary)
+                result = {"status": "Transferring", "note": "The system is telling the caller to hold. Say nothing more."}
         elif name == "request_callback":
             result = self.board.request_callback(name=args.get("name", ""), reason=args.get("reason", ""),
                                                  phone=args.get("phone") or self.caller_id or "")
