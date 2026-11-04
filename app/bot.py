@@ -25,6 +25,7 @@ from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 from pipecat.workers.runner import WorkerRunner
 
+from app.crm import CRMSync, HubSpot
 from app.facts import GREETING, SYSTEM_PROMPT, call_context
 from app.schedule import TZ, Board
 from app.tools import FILLERS, TOOL_SPECS, Tools
@@ -35,7 +36,8 @@ BOARD = Board()
 
 
 async def run_bot(transport, runner_args: RunnerArguments, caller_id: str | None):
-    tools = Tools(BOARD, caller_id)
+    crm = CRMSync(HubSpot(os.environ["HUBSPOT_TOKEN"]) if os.getenv("HUBSPOT_TOKEN") else None)
+    tools = Tools(BOARD, caller_id, on_job=crm.submit)
     logger.info(f"Call started, caller {mask_phone(caller_id)}")
 
     stt = DeepgramSTTService(api_key=os.environ["DEEPGRAM_API_KEY"])
@@ -100,6 +102,10 @@ async def run_bot(transport, runner_args: RunnerArguments, caller_id: str | None
         await runner.cancel()
 
     await runner.run()
+    for r in await crm.drain():
+        logger.info(f"CRM result: {r}")
+    if crm.crm:
+        await crm.crm.aclose()
 
 
 async def bot(runner_args: RunnerArguments):

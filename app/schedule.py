@@ -87,6 +87,7 @@ class Job:
     urgency: str
     truck: str
     date: str
+    meeting_id: str | None = None  # set once synced to the CRM
 
 
 @dataclass

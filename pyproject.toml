@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.0",
+    "httpx>=0.28.1",
     "pipecat-ai[deepgram,openai,runner,silero,websocket]==1.15.0",
     "python-dotenv>=1.2.4",
     "twilio>=9.12.0",

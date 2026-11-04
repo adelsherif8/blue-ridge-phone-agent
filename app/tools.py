@@ -59,9 +59,10 @@ FILLERS = {"check_slots": "One sec, checking the board.", "book_job": "One sec, 
 class Tools:
     """Runs tool calls for one phone call against a board."""
 
-    def __init__(self, board: Board, caller_id: str | None = None):
+    def __init__(self, board: Board, caller_id: str | None = None, on_job=None):
         self.board = board
         self.caller_id = caller_id
+        self.on_job = on_job  # called with the Job after a booking or change (CRM sync)
         self.checked_days: set[str] = set()
         self.booked_ids: list[str] = []  # jobs booked in this call; only these may be changed
         self.calls: list[dict] = []  # every call and result, for the call log and evals
@@ -100,6 +101,8 @@ class Tools:
             result = {"error": f"unknown tool {name}"}
         if name == "book_job" and result.get("status") == "Booked":
             self.booked_ids.append(result["job_id"])
+        if self.on_job and result.get("status") in ("Booked", "Changed"):
+            self.on_job(next(j for j in self.board.jobs if j.job_id == result["job_id"]))
         safe_args = {k: v for k, v in args.items() if k != "phone"}  # never log phone numbers
         logger.info(f"TOOL {name} {json.dumps(safe_args)} -> {json.dumps(result)[:300]}")
         self.calls.append({"name": name, "args": safe_args, "result": result})
