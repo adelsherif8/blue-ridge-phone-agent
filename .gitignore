@@ -6,3 +6,4 @@ calls/
 recordings/
 *.wav
 .pytest_cache/
+evals/results/
