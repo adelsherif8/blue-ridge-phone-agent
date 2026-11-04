@@ -4,7 +4,7 @@ Twilio dials TWILIO_PHONE_NUMBER (the bot). The "caller" leg runs the TwiML
 below: it waits, speaks a line, waits for Riley to answer, and so on.
 The bot's side of the conversation shows up in the server log.
 
-Usage: uv run python scripts/test_call.py [--from +1...]
+Usage: uv run python scripts/place_test_call.py [--from +1...]
 """
 
 import argparse
