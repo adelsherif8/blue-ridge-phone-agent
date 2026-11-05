@@ -121,11 +121,14 @@ async def run_one(sc: dict, port: int) -> dict:
 
 
 def summarize(results: list) -> dict:
-    v2v = [t["voice_to_voice_secs"] for r in results for t in r.get("turns", []) if t.get("voice_to_voice_secs")]
-    no_tool = [t["voice_to_voice_secs"] for r in results for t in r.get("turns", []) if not t.get("tools")]
-    with_tool = [t["voice_to_voice_secs"] for r in results for t in r.get("turns", []) if t.get("tools")]
+    # Only turns anchored at the caller's end of speech. Pipecat anchors the bot's second reply after a
+    # tool call (filler -> tool -> answer) at client_connected, which is elapsed call time, not latency.
+    turns = [t for r in results for t in r.get("turns", []) if t.get("measured_from") == "user_silence"]
+    v2v = [t["voice_to_voice_secs"] for t in turns]
+    no_tool = [t["voice_to_voice_secs"] for t in turns if not t.get("tools")]
+    with_tool = [t["voice_to_voice_secs"] for t in turns if t.get("tools")]
     client = [t["secs"] for r in results for t in r.get("client_turns", [])]
-    by = lambda svc: [t["ttfb"][svc] for r in results for t in r.get("turns", []) if svc in t.get("ttfb", {})]  # noqa: E731
+    by = lambda svc: [t["ttfb"][svc] for t in turns if svc in t.get("ttfb", {})]  # noqa: E731
     row = lambda xs: {"n": len(xs), "median": round(statistics.median(xs), 3) if xs else None,  # noqa: E731
                       "p95": round(pct(xs, 95), 3) if xs else None}
     return {"server_voice_to_voice": row(v2v), "server_no_tool_turns": row(no_tool),

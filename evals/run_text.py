@@ -125,7 +125,7 @@ async def run_one(sc: dict, model: str, run_idx: int) -> dict:
     replies = []
     t0 = time.time()
     for _ in range(MAX_TURNS):
-        c = await client.chat.completions.create(model="gpt-4.1", messages=caller_msgs, temperature=0.7)
+        c = await client.chat.completions.create(model=os.getenv("CALLER_MODEL", "gpt-4.1-mini"), messages=caller_msgs, temperature=0.7)
         said = c.choices[0].message.content or ""
         caller_msgs.append({"role": "assistant", "content": said})
         clean = said.replace("[HANGUP]", "").strip()

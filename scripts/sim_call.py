@@ -148,7 +148,7 @@ async def converse(lines, caller_msgs, bot_turn, send):
             heard = await bot_turn()
             lines.append(("AGENT", heard or "(silence)"))
             caller_msgs.append({"role": "user", "content": heard or "(silence on the line)"})
-            c = await oai.chat.completions.create(model="gpt-4.1", messages=caller_msgs, temperature=0.7)
+            c = await oai.chat.completions.create(model=os.getenv("CALLER_MODEL", "gpt-4.1-mini"), messages=caller_msgs, temperature=0.7)
             said = c.choices[0].message.content or ""
             caller_msgs.append({"role": "assistant", "content": said})
             clean = said.replace("[HANGUP]", "").strip()
