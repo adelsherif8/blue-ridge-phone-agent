@@ -40,3 +40,30 @@ def test_nested_objects_and_agent_name_kept():
     r = CallRedactor(names=["Ana", "Sam", "Caller"])
     out = r.redact_obj({"args": {"name": "Ana", "address": "41 Laurel Drive"}, "text": ["Sam here"]})
     assert out["args"]["name"] != "Ana" and "Laurel" not in out["args"]["address"] and out["text"] == ["Sam here"]
+
+
+def test_calllog_joins_stt_fragments_before_redacting(tmp_path, monkeypatch):
+    import json
+    from app import calllog
+    monkeypatch.setenv("CALL_LOG_DIR", str(tmp_path))
+    log = calllog.CallLog("CAtest", "+18285550123")
+    msgs = [{"role": "assistant", "content": "What's the address?"},
+            {"role": "user", "content": "Sure. The address is one two three"},
+            {"role": "user", "content": "Pine Street."}]
+    path = log.write(messages=msgs, tool_calls=[], transfer=None, crm=[], ended_by="hangup")
+    rec = json.loads(path.read_text())
+    assert len(rec["transcript"]) == 2
+    assert "Pine" not in rec["transcript"][1]["text"]
+
+
+def test_self_given_first_name_is_redacted_in_transfer_summary(tmp_path, monkeypatch):
+    import json
+    from app import calllog
+    monkeypatch.setenv("CALL_LOG_DIR", str(tmp_path))
+    log = calllog.CallLog("CAtest2", None)
+    msgs = [{"role": "user", "content": "Hi Sam, This is Marcus. A pipe burst in my basement."}]
+    path = log.write(messages=msgs, tool_calls=[], transfer={"reason": "emergency", "summary": "Marcus has a burst pipe"},
+                     crm=[], ended_by="transfer")
+    rec = json.loads(path.read_text())
+    assert "Marcus" not in json.dumps(rec)
+    assert "Sam" in rec["transcript"][0]["text"]

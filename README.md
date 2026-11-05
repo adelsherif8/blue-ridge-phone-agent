@@ -97,8 +97,9 @@ in `app/bot.py`; OpenAI voice latency was not measured.
   are covered by tests and simulated calls, but no live call was bridged to a phone.
 - **Speech-to-text errors reach the CRM.** A misheard name ends up in the transfer summary and the
   contact record. The bot reads addresses back, but not names.
-- **Redaction misses names it was not told about.** A caller's first name inside a transfer summary
-  ("Marcus has a burst pipe...") can survive redaction; addresses and phone numbers in the same line are caught.
+- **Redaction is regex-based.** It catches phone numbers and addresses (also spoken as words), names given
+  to the booking tool, and first names callers give for themselves ("this is Walt"). A name mentioned any
+  other way can survive. Presidio (NER) is supported by the vendored redactor but off by default.
 - **The bot sometimes calls `book_job` too early.** In some test calls it tried to book before checking the
   schedule or collecting the caller's details. The code guardrail refused every one of these, and the bot
   then checked the schedule as it should.

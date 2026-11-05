@@ -19,6 +19,21 @@ _SUFFIX = r"(?:Street|St|Road|Rd|Drive|Dr|Avenue|Ave|Lane|Ln|Way|Court|Ct|Circle
 SPOKEN_ADDRESS = re.compile(rf"\b{_NUM_WORD}(?:[\s-]+{_NUM_WORD})*(?:\s+[A-Z][a-z]+){{1,3}}\s+{_SUFFIX}\b", re.I)
 
 
+SELF_NAME = re.compile(r"\b(?i:this is|my name is|my name's|name is|call me|it's|it is)\s+([A-Z][a-z]{1,20})\b")
+NOT_NAMES = {"sam", "blue", "the", "a", "an", "about", "regarding", "urgent", "my", "not", "just", "me"}
+
+
+def self_named(texts) -> list[str]:
+    """First names callers give for themselves ("Hi, this is Walt"), so they are redacted everywhere,
+    including the transfer summary the LLM writes."""
+    found = []
+    for t in texts:
+        for m in SELF_NAME.finditer(t or ""):
+            if m.group(1).lower() not in NOT_NAMES and m.group(1) not in found:
+                found.append(m.group(1))
+    return found
+
+
 class CallRedactor:
     def __init__(self, names=()):
         self.inner = Redactor(names=[n for n in names if n and n.lower() not in ("caller", "sam")], engine="regex")

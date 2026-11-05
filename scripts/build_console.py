@@ -5,10 +5,13 @@ Everything shown comes from saved records (transcripts are already redacted) and
 """
 import glob
 import json
+import sys
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from app.redact import CallRedactor, self_named  # noqa: E402
 CUES = {
     "check_slots": re.compile(r"checking the board|\b(am|pm|noon)\b|open|available|full", re.I),
     "book_job": re.compile(r"booking that in|booked|confirmed", re.I),
@@ -41,6 +44,10 @@ def timeline(rec: dict) -> list:
             lines[-1]["text"] += " " + m["text"]
         else:
             lines.append({"role": role, "text": m["text"]})
+    # records written before these fixes: redact joined lines and self-given first names again
+    red = CallRedactor(names=self_named(ln["text"] for ln in lines if ln["role"] == "caller"))
+    for ln in lines:
+        ln["text"] = red.redact(ln["text"])
     turns = list(rec.get("turns", []))
     for i, ln in enumerate(lines):
         if ln["role"] == "bot" and turns and (i == 0 or lines[i - 1]["role"] == "caller"):
@@ -75,8 +82,11 @@ def main():
     calls = []
     for f in sorted(glob.glob(str(ROOT / "data/calls/*/*.json")), reverse=True):
         rec = json.loads(Path(f).read_text())
-        if not rec.get("transcript"):
-            continue
+        if not any(m["role"] == "user" for m in rec.get("transcript", [])):
+            continue  # aborted run (e.g. the API was out of credit): greeting only, nothing to show
+        red = CallRedactor(names=self_named(m["text"] for m in rec["transcript"] if m["role"] == "user"))
+        rec["transfer"] = red.redact_obj(rec.get("transfer"))
+        rec["tool_calls"] = red.redact_obj(rec.get("tool_calls", []))
         calls.append({"sid": rec["call_sid"][-6:], "scenario": rec.get("scenario") or "live",
                       "caller": rec.get("caller"), "started": rec.get("started_at", "")[:16].replace("T", " "),
                       "secs": rec.get("duration_secs"), "first": rec.get("first_speech_secs"),

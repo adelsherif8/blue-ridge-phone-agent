@@ -16,7 +16,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from app.redact import CallRedactor
+from app.redact import CallRedactor, self_named
 from app.util import mask_phone
 
 
@@ -50,9 +50,18 @@ class CallLog:
 
     def write(self, *, messages: list, tool_calls: list, transfer: dict | None, crm: list, ended_by: str) -> Path:
         names = [c["args"].get("name", "") for c in tool_calls if isinstance(c.get("args"), dict)]
+        transcript = []
+        for m in messages:
+            if m.get("role") not in ("user", "assistant") or not isinstance(m.get("content"), str) or not m["content"]:
+                continue
+            # STT can split one sentence into several messages ("...one two three" / "Pine Street."); join a
+            # speaker's consecutive messages so redaction sees the whole address or number.
+            if transcript and transcript[-1]["role"] == m["role"]:
+                transcript[-1]["text"] += " " + m["content"]
+            else:
+                transcript.append({"role": m["role"], "text": m["content"]})
+        names += self_named(t["text"] for t in transcript if t["role"] == "user")
         red = CallRedactor(names=names)
-        transcript = [{"role": m["role"], "text": m["content"]} for m in messages
-                      if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str) and m["content"]]
         record = {
             "call_sid": self.call_sid,
             "scenario": self.scenario,
