@@ -5,25 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Blue Ridge Call Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Serif:ital@1&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 :root{
-  --base:#0f1419; --panel:#151c24; --panel2:#1b2430; --line:#26313f;
-  --ink:#eef1f8; --mute:#8b98ab; --dim:#5d6a7d;
-  --sec:#60a5fa; --acc:#f97316; --ok:#22c55e; --warn:#f5b84a; --bad:#ef4444;
-  --stt:#60a5fa; --llm:#a78bfa; --tts:#2dd4bf; --tool:#f97316; --wait:#3a4757;
+  --base:#16130F; --panel:#1E1A15; --panel2:#28231C; --line:#3A3229;
+  --ink:#F7F4EE; --mute:#ABA294; --dim:#7A7265;
+  --sec:#E4DCCB; --acc:#F2643F; --red:#C63C22; --ok:#5DBE7A; --warn:#E9B04A; --bad:#E5484D;
+  --stt:#8FB3C9; --llm:#F2643F; --tts:#E9B04A; --tool:#E4DCCB; --wait:#433A30;
 }
 *{box-sizing:border-box;margin:0}
-body{background:var(--base);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;min-height:100vh}
+body{background:var(--base);color:var(--ink);font:14px/1.45 "Archivo",system-ui,sans-serif;min-height:100vh}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121a22,var(--base))}
+header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1B1712,var(--base))}
 .logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--panel2);color:var(--sec);border:1px solid var(--line)}
-header h1{font-size:15px;font-weight:600;letter-spacing:.2px}
+header h1{font-size:19px;font-weight:700;letter-spacing:-.03em}
+header h1 em{font-family:"Instrument Serif",Georgia,serif;font-style:italic;font-weight:400;color:var(--acc);font-size:22px;letter-spacing:-.01em;margin-left:5px}
+.lbl{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.lbl::before{content:"";width:18px;height:2px;background:var(--acc)}
+header svg.aa{height:26px;width:auto;margin-left:14px;flex:none}
 header .sub{color:var(--mute);font-size:12px}
 .live{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 2s infinite}
-@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(93,190,122,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(93,190,122,0)}100%{box-shadow:0 0 0 0 rgba(93,190,122,0)}}
 .stack{display:flex;gap:6px;flex-wrap:wrap}
 .stack span{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--mute)}
 .ticker{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--line)}
@@ -39,7 +43,7 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 .ph{position:sticky;top:0;z-index:2;background:var(--base);padding:12px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;display:flex;justify-content:space-between;align-items:center}
 .chips{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .chip{font-size:11px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mute);cursor:pointer;font-family:inherit}
-.chip.on{background:var(--panel2);color:var(--ink);border-color:#3a4a5e}
+.chip.on{background:var(--panel2);color:var(--ink);border-color:#5A4D3D}
 .call{padding:11px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:background .15s}
 .call:hover{background:var(--panel)}
 .call.sel{background:var(--panel2);box-shadow:inset 3px 0 0 var(--acc)}
@@ -47,15 +51,15 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 .call .t{font-weight:500;font-size:13px}
 .call .m{font-size:11px;color:var(--dim)}
 .call .d{font-size:11px;color:var(--mute);text-align:right}
-.k-booked .ic{background:rgba(34,197,94,.12);color:var(--ok)}
-.k-transfer .ic{background:rgba(249,115,22,.14);color:var(--acc)}
-.k-callback .ic{background:rgba(245,184,74,.12);color:var(--warn)}
-.k-info .ic{background:rgba(96,165,250,.12);color:var(--sec)}
+.k-booked .ic{background:rgba(93,190,122,.12);color:var(--ok)}
+.k-transfer .ic{background:rgba(242,100,63,.14);color:var(--acc)}
+.k-callback .ic{background:rgba(233,176,74,.12);color:var(--warn)}
+.k-info .ic{background:rgba(228,220,203,.12);color:var(--sec)}
 .badge{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:4px 10px;border-radius:999px;font-weight:500}
-.b-booked{background:rgba(34,197,94,.12);color:var(--ok)}
-.b-transfer{background:rgba(249,115,22,.14);color:var(--acc)}
-.b-callback{background:rgba(245,184,74,.12);color:var(--warn)}
-.b-info{background:rgba(96,165,250,.12);color:var(--sec)}
+.b-booked{background:rgba(93,190,122,.12);color:var(--ok)}
+.b-transfer{background:rgba(242,100,63,.14);color:var(--acc)}
+.b-callback{background:rgba(233,176,74,.12);color:var(--warn)}
+.b-info{background:rgba(228,220,203,.12);color:var(--sec)}
 .callhead{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .callhead h2{font-size:16px;font-weight:600}
 .meta{display:flex;gap:16px;color:var(--mute);font-size:12px;margin-left:auto}
@@ -67,22 +71,22 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 .bubble{padding:10px 13px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
 .msg.bot{align-self:flex-start}
 .msg.caller{align-self:flex-end}
-.msg.caller .bubble{background:#18283a;border-color:#22384f}
+.msg.caller .bubble{background:#2B2119;border-color:#4A3426}
 .msg.caller .who{justify-content:flex-end}
 .lat{cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:11px;padding:1px 7px;border-radius:6px;background:var(--panel2);color:var(--sec);border:1px solid var(--line)}
 .lat.slow{color:var(--warn)}
 .lat.on{border-color:var(--acc);color:var(--acc)}
-.pii{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:1px 6px;border-radius:5px;background:#2a2233;color:#c4b5fd;border:1px dashed #5b4b7a;white-space:nowrap}
+.pii{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:1px 6px;border-radius:5px;background:#2B2119;color:#F5A585;border:1px dashed #8A4A33;white-space:nowrap}
 .tool{align-self:stretch;margin:0 0 0 18px;border-left:2px solid var(--line);padding:2px 0 2px 14px;opacity:0;animation:in .35s ease forwards}
-.toolcard{background:#141a21;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.toolcard{background:#1A1712;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:"IBM Plex Mono",monospace;font-size:12px}
 .toolcard .n{color:var(--acc);font-weight:600}
 .toolcard .n i{margin-right:6px}
 .toolcard .a{color:var(--mute);margin-top:4px;word-break:break-word}
 .toolcard .r{margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .st{font-size:11px;padding:2px 8px;border-radius:999px}
-.st.ok{background:rgba(34,197,94,.12);color:var(--ok)}
-.st.no{background:rgba(239,68,68,.12);color:#f87171}
-.st.go{background:rgba(249,115,22,.14);color:var(--acc)}
+.st.ok{background:rgba(93,190,122,.12);color:var(--ok)}
+.st.no{background:rgba(229,72,77,.12);color:#F0776A}
+.st.go{background:rgba(242,100,63,.14);color:var(--acc)}
 .side{padding:16px 18px;display:flex;flex-direction:column;gap:16px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
 .card h3{font-size:12px;color:var(--mute);font-weight:500;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;justify-content:space-between}
@@ -91,7 +95,7 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 .wf{display:flex;flex-direction:column;gap:7px;margin-top:12px}
 .wrow{display:grid;grid-template-columns:118px 1fr 52px;gap:8px;align-items:center;font-size:12px}
 .wrow .l{color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wrow .track{position:relative;height:12px;background:#121820;border-radius:4px}
+.wrow .track{position:relative;height:12px;background:#110E0B;border-radius:4px}
 .wrow .bar{position:absolute;top:0;height:100%;border-radius:4px;width:0;transition:width .6s cubic-bezier(.2,.8,.2,1)}
 .wrow .s{font-family:"IBM Plex Mono",monospace;color:var(--ink);text-align:right}
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--mute)}
@@ -100,7 +104,7 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 .split div{background:var(--panel2);border-radius:8px;padding:8px}
 .split .k{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
 .split .v{font:600 15px "IBM Plex Mono",monospace}
-.handoff{border-color:rgba(249,115,22,.45);background:linear-gradient(180deg,rgba(249,115,22,.08),var(--panel))}
+.handoff{border-color:rgba(242,100,63,.45);background:linear-gradient(180deg,rgba(242,100,63,.08),var(--panel))}
 .handoff .q{font-size:13px;margin-top:6px}
 .handoff .steps{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute)}
 .handoff .steps i{color:var(--acc);width:16px}
@@ -112,9 +116,9 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
 </head>
 <body>
 <header>
-  <div class="logo"><i class="fa-solid fa-wrench"></i></div>
   <div>
-    <h1>Blue Ridge Plumbing <span style="color:var(--dim);font-weight:400">/ phone agent console</span></h1>
+    <div class="lbl">Call console</div>
+    <h1>Blue Ridge Plumbing <em>phone agent</em></h1>
     <div class="sub">Every call: transcript, tool calls, hand-offs and latency per turn</div>
   </div>
   <div class="stack" style="margin-left:24px">
@@ -125,6 +129,7 @@ main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128p
     <span><i class="fa-solid fa-address-book"></i> HubSpot</span>
   </div>
   <div class="live"><i class="fa-solid fa-database"></i>From redacted call records</div>
+  <svg class="aa" aria-label="Adel Atya" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1553 967"><defs><mask id="m"><rect width="100%" height="100%" fill="white"/><rect x="210.0" y="592.6" width="1132.8" height="96.4" fill="black"/></mask></defs><g fill="#F7F4EE" mask="url(#m)"><path d="M140.0 827.0869140625 398.3046875 140.0H612.84619140625L871.607421875 827.0869140625H680.06591796875L639.19580078125 707.71630859375H364.8681640625L323.998046875 827.0869140625ZM408.58544921875 573.80419921875H595.5654296875L546.1298828125 429.10693359375Q542.1298828125 418.02001953125 536.901611328125 401.704833984375Q531.67333984375 385.3896484375 526.216796875 366.617919921875Q520.76025390625 347.84619140625 515.3037109375 329.117919921875Q509.84716796875 310.3896484375 505.390625 295.93310546875H498.76025390625Q493.84716796875 314.84619140625 486.43408203125 339.2158203125Q479.02099609375 363.58544921875 471.564453125 387.400634765625Q464.10791015625 411.2158203125 458.02099609375 429.10693359375Z"/><path d="M681.3894921875 827.0869140625 939.6941796875 140.0H1154.2356835937499L1412.9969140624999 827.0869140625H1221.4554101562499L1180.5852929687499 707.71630859375H906.25765625L865.3875390625 827.0869140625ZM949.97494140625 573.80419921875H1136.9549218749999L1087.5193749999999 429.10693359375Q1083.5193749999999 418.02001953125 1078.2911035156249 401.704833984375Q1073.0628320312499 385.3896484375 1067.6062890624999 366.617919921875Q1062.1497460937499 347.84619140625 1056.6932031249999 329.117919921875Q1051.2366601562499 310.3896484375 1046.7801171874999 295.93310546875H1040.1497460937499Q1035.2366601562499 314.84619140625 1027.8235742187499 339.2158203125Q1020.41048828125 363.58544921875 1012.9539453125 387.400634765625Q1005.49740234375 411.2158203125 999.41048828125 429.10693359375Z"/></g><rect x="210.0" y="592.6" width="1132.8" height="96.4" fill="#F2643F"/></svg>
 </header>
 
 <section class="ticker" id="ticker"></section>
@@ -154,8 +159,8 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const pii = s => esc(s).replace(/&lt;([A-Z_]+?)(?:_\d+)?&gt;/g, (_, t) =>
   `<span class="pii" title="redacted before saving"><i class="fa-solid fa-lock" style="font-size:9px"></i> ${t.replace(/_SPOKEN|_/g," ").trim().toLowerCase()}</span>`);
 const COLORS = {endpointing_wait:"var(--wait)", turn_detection:"var(--wait)", transcription:"var(--stt)",
-  llm_inference:"var(--llm)", llm_tool_call:"var(--tool)", sentence_aggregation:"#64748b",
-  speech_synthesis:"var(--tts)", output_transport:"#94a3b8", pipeline:"#334155", first_request:"#475569"};
+  llm_inference:"var(--llm)", llm_tool_call:"var(--tool)", sentence_aggregation:"#8A7F6E",
+  speech_synthesis:"var(--tts)", output_transport:"#B5AA98", pipeline:"#4A4034", first_request:"#5E5345"};
 
 function ticker(){
   const k = (icon, label, v, unit, hero) => `<div class="kpi ${hero?"hero":""}"><div class="k"><i class="fa-solid ${icon}"></i>${label}</div><div class="v" data-to="${v}">0<small>${unit}</small></div></div>`;
@@ -235,7 +240,7 @@ function turn(i){
       <div class="split"><div><div class="k">STT</div><div class="v">${t.ttfb.stt!=null?t.ttfb.stt.toFixed(2):"-"}</div></div>
       <div><div class="k">LLM</div><div class="v">${t.ttfb.llm!=null?t.ttfb.llm.toFixed(2):"-"}</div></div>
       <div><div class="k">Voice</div><div class="v">${t.ttfb.tts!=null?t.ttfb.tts.toFixed(2):"-"}</div></div></div>
-      <div class="wf">${cs.map(x => `<div class="wrow"><div class="l">${esc(x.label)}</div><div class="track"><div class="bar" style="left:${(x.start_time-t0)/total*100}%;background:${COLORS[x.key]||"#475569"}" data-w="${Math.max(1.5,x.duration_secs/total*100)}"></div></div><div class="s">${x.duration_secs.toFixed(2)}</div></div>`).join("")}</div>
+      <div class="wf">${cs.map(x => `<div class="wrow"><div class="l">${esc(x.label)}</div><div class="track"><div class="bar" style="left:${(x.start_time-t0)/total*100}%;background:${COLORS[x.key]||"#5E5345"}" data-w="${Math.max(1.5,x.duration_secs/total*100)}"></div></div><div class="s">${x.duration_secs.toFixed(2)}</div></div>`).join("")}</div>
       <div class="legend"><span><i style="background:var(--stt)"></i>speech-to-text</span><span><i style="background:var(--llm)"></i>LLM</span><span><i style="background:var(--tool)"></i>tool</span><span><i style="background:var(--tts)"></i>voice</span></div>
       ${(t.tools||[]).length?`<div class="note" style="margin-top:10px"><i class="fa-solid fa-gear"></i> tools this turn: ${t.tools.map(x=>esc(x.name)).join(", ")}</div>`:""}</div>`;
   } else html += `<div class="card"><div class="empty">No timing recorded for this turn.</div></div>`;

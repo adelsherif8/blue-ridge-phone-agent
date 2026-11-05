@@ -69,7 +69,7 @@ and one scenario's board setup was not applied on the server), 1 was a network d
 plus rule checks (reply length, digits read as numbers, one question per turn, check before booking,
 correct transfer reason). The last three runs passed 56, 56 and 57 of 57.
 
-**Unit tests.** 96 tests: schedule and guardrails, phone and day parsing, HubSpot client against a fake
+**Unit tests.** 98 tests: schedule and guardrails, phone and day parsing, HubSpot client against a fake
 API, transfer TwiML and serializer, Twilio signature checks, PII redaction. CI runs them on every push.
 
 ### Voice cost
