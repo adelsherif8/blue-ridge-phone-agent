@@ -1,63 +1,63 @@
 {
  "audio": [
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_hook.mp3",
+   "audio/n_hook.mp3",
    0.4
   ],
   [
-   "/Users/adel/Desktop/GHAI/voicedesk/docs/vid2/ring.mp3",
+   "../../../voicedesk/docs/vid2/ring.mp3",
    6.0
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_0.mp3",
+   "audio/call1_0.mp3",
    7.6
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_1.mp3",
+   "audio/call1_1.mp3",
    13.978000000000002
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_2.mp3",
+   "audio/call1_2.mp3",
    19.724000000000004
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_3.mp3",
+   "audio/call1_3.mp3",
    23.870000000000005
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_4.mp3",
+   "audio/call1_4.mp3",
    26.088000000000005
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_5.mp3",
+   "audio/call1_5.mp3",
    27.546000000000006
   ],
   [
-   "/Users/adel/Desktop/GHAI/voicedesk/docs/vid2/ding.mp3",
+   "../../../voicedesk/docs/vid2/ding.mp3",
    27.746000000000006
   ],
   [
-   "/Users/adel/Desktop/GHAI/voicedesk/docs/vid2/ring.mp3",
+   "../../../voicedesk/docs/vid2/ring.mp3",
    33.66000000000001
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_0.mp3",
+   "audio/call2_0.mp3",
    34.66000000000001
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_1.mp3",
+   "audio/call2_1.mp3",
    40.26400000000001
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_2.mp3",
+   "audio/call2_2.mp3",
    46.27200000000001
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_xfer.mp3",
+   "audio/n_xfer.mp3",
    50.796000000000014
   ],
   [
-   "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_cta.mp3",
+   "audio/n_cta.mp3",
    56.19600000000001
   ]
  ],

@@ -47,11 +47,11 @@ def main():
     a = HERE / "audio"; a.mkdir(exist_ok=True)
     res = {"narr": {}, "call1": [], "call2": []}
     for k, t in LINES["narr"].items():
-        f = a / f"n_{k}.mp3"; res["narr"][k] = {"file": str(f), "text": t, "dur": speak(V["narr"], t, f)}
+        f = a / f"n_{k}.mp3"; res["narr"][k] = {"file": str(f.relative_to(HERE)), "text": t, "dur": speak(V["narr"], t, f)}
     for call in ("call1", "call2"):
         for i, (who, t) in enumerate(LINES[call]):
             f = a / f"{call}_{i}.mp3"
-            res[call].append({"speaker": who, "text": t, "file": str(f), "dur": speak(V[who], t, f)})
+            res[call].append({"speaker": who, "text": t, "file": str(f.relative_to(HERE)), "dur": speak(V[who], t, f)})
     (HERE / "lines.json").write_text(json.dumps(res, indent=1))
     tot = sum(v["dur"] for v in res["narr"].values()) + sum(x["dur"] for c in ("call1", "call2") for x in res[c])
     print("audio seconds:", round(tot, 1))

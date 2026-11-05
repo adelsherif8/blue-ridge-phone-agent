@@ -6,6 +6,7 @@ Outputs: docs/video/out/phone-agent.mp4, .gif, and stills in docs/video/frames/.
 import asyncio
 import glob
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -17,7 +18,7 @@ from playwright.async_api import async_playwright
 HERE = Path(__file__).parent
 OUT, FR = HERE / "out", HERE / "frames"
 L = json.loads((HERE / "lines.json").read_text())
-SFX = Path("/Users/adel/Desktop/GHAI/voicedesk/docs/vid2")
+SFX = HERE.resolve().parents[2] / "voicedesk/docs/vid2"  # ring + ding sfx from the VoiceDesk repo next to this one
 # measured voice-to-voice seconds for the turns used (call records 19682806 and 04974b6c)
 LAT1 = [1.39, 1.24, 1.54]  # windows offer, address read-back, booking
 LAT2 = 2.37
@@ -55,7 +56,7 @@ async def main():
         async def api(c): await pg.evaluate(f"api.{c}")
         async def shot(n):
             if not VAR: await pg.screenshot(path=str(FR / f"{n}.png"))
-        def snd(f, t): audio.append((str(f), t))
+        def snd(f, t): audio.append((str(HERE / f), t))  # lines.json paths are relative to docs/video
         def j(x): return json.dumps(x)
 
         # hook
@@ -126,7 +127,9 @@ async def main():
         await at(t + 3.9)
         total = now()
         await ctx.close(); await b.close()
-    if not VAR: (HERE / "timeline.json").write_text(json.dumps({"audio": audio, "total": total}, indent=1))
+    if not VAR:
+        rel = [(os.path.relpath(f, HERE), t) for f, t in audio]
+        (HERE / "timeline.json").write_text(json.dumps({"audio": rel, "total": total}, indent=1))
     raw = glob.glob(str(RAW / "*.webm"))[0]
     mux(raw, audio, total, lead, end_png, end_t)
     shutil.rmtree(RAW, ignore_errors=True)

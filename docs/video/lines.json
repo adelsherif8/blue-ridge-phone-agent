@@ -1,17 +1,17 @@
 {
  "narr": {
   "hook": {
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_hook.mp3",
+   "file": "audio/n_hook.mp3",
    "text": "Most AI phone agents are a black box you rent by the minute. This one is a pipeline I own.",
    "dur": 5.304
   },
   "xfer": {
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_xfer.mp3",
+   "file": "audio/n_xfer.mp3",
    "text": "Safety advice first. Then a live hand-off to a person. The bot leaves, the call stays up.",
    "dur": 5.208
   },
   "cta": {
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/n_cta.mp3",
+   "file": "audio/n_cta.mp3",
    "text": "Want your own voice stack, not a rented one? Let's build it.",
    "dur": 3.408
   }
@@ -20,37 +20,37 @@
   {
    "speaker": "ana",
    "text": "Hi Sam, my bathroom faucet is dripping constantly. Can someone come tomorrow afternoon?",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_0.mp3",
+   "file": "audio/call1_0.mp3",
    "dur": 5.328
   },
   {
    "speaker": "sam",
    "text": "Tomorrow afternoon we have two to four PM and four to six PM. Which works best?",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_1.mp3",
+   "file": "audio/call1_1.mp3",
    "dur": 5.496
   },
   {
    "speaker": "ana",
    "text": "Two to four, please. I'm at 41 Laurel Drive.",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_2.mp3",
+   "file": "audio/call1_2.mp3",
    "dur": 3.096
   },
   {
    "speaker": "sam",
    "text": "That's forty-one Laurel Drive, right?",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_3.mp3",
+   "file": "audio/call1_3.mp3",
    "dur": 1.968
   },
   {
    "speaker": "ana",
    "text": "Yes.",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_4.mp3",
+   "file": "audio/call1_4.mp3",
    "dur": 0.408
   },
   {
    "speaker": "sam",
    "text": "Your visit is booked for tomorrow, two to four PM, with an eighty-nine dollar call-out fee.",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call1_5.mp3",
+   "file": "audio/call1_5.mp3",
    "dur": 5.664
   }
  ],
@@ -58,19 +58,19 @@
   {
    "speaker": "marcus",
    "text": "This is Marcus. A pipe burst in my basement and water is spraying everywhere!",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_0.mp3",
+   "file": "audio/call2_0.mp3",
    "dur": 4.704
   },
   {
    "speaker": "sam",
    "text": "If you can reach it safely, shut off the main water valve now. I'm connecting you to our on-call technician.",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_1.mp3",
+   "file": "audio/call2_1.mp3",
    "dur": 5.808
   },
   {
    "speaker": "twilio",
    "text": "Connecting you to our on-call team now. Please stay on the line.",
-   "file": "/Users/adel/Desktop/GHAI/phone-agent/docs/video/audio/call2_2.mp3",
+   "file": "audio/call2_2.mp3",
    "dur": 4.224
   }
  ]
