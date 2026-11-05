@@ -99,7 +99,7 @@ Every turn's timing waterfall, in the call console: adelatya.com/voice-agent-eng
 - Format: Native vertical video (1080x1920, 14.4 s)
 - Asset: `vertical-handoff-15s.mp4`
 - Audience: Home-services owners and agencies (no own-stack line)
-- Length: 712 characters (hook 60, shown before "see more")
+- Length: 727 characters (hook 60, shown before "see more")
 
 ```
 2 AM. A pipe bursts in the basement. Who answers your phone?
@@ -112,7 +112,7 @@ Here's what my AI receptionist does on that call:
 
 If nobody picks up, the caller is offered a callback and it is saved.
 
-This is a simulated call, re-voiced for the video, and the transfer was tested in dry-run mode.
+Simulated call · transfer tested in dry-run. The voices are re-recorded for the video; no real phone was rung.
 
 Would your after-hours line handle this call?
 

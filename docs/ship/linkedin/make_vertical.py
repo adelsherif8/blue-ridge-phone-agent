@@ -21,7 +21,7 @@ h1{{position:absolute;left:60px;top:118px;font-size:96px;font-weight:900;letter-
 h1 em{{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;color:#C63C22;letter-spacing:-.01em;font-size:108px}}
 .s{{position:absolute;left:64px;bottom:34px;font:500 22px "IBM Plex Mono",monospace;color:#6B655B}}</style></head><body>
 <div class="l">LIVE HAND-OFF</div>{LOGO}<h1>Burst pipe at 2 AM.<br><em>Live</em> hand-off.</h1>
-<div class="s">simulated call, re-voiced · Pipecat on Twilio</div></body></html>"""
+<div class="s">simulated call · transfer tested in dry-run</div></body></html>"""
 
 async def header():
     async with async_playwright() as p:
