@@ -1,6 +1,6 @@
 """Record the pipeline X-ray video: Playwright drives stage.html on a timeline, ffmpeg lays the audio on top.
 
-Usage: python docs/video/build.py  (any Python with playwright + chromium installed)
+Usage: python docs/video/build.py [--upwork]  (any Python with playwright + chromium installed)
 Outputs: docs/video/out/phone-agent.mp4, .gif, and stills in docs/video/frames/.
 """
 import asyncio
@@ -8,6 +8,7 @@ import glob
 import json
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -20,18 +21,21 @@ SFX = Path("/Users/adel/Desktop/GHAI/voicedesk/docs/vid2")
 # measured voice-to-voice seconds for the turns used (call records 19682806 and 04974b6c)
 LAT1 = [1.39, 1.24, 1.54]  # windows offer, address read-back, booking
 LAT2 = 2.37
+# --upwork: same video without the domain on the end card (Upwork treats it as contact info)
+UP = "--upwork" in sys.argv
+SUF = "-upwork" if UP else ""
 
 
 async def main():
-    shutil.rmtree(OUT, ignore_errors=True); OUT.mkdir(); FR.mkdir(exist_ok=True)
+    RAW = OUT / "raw"; shutil.rmtree(RAW, ignore_errors=True); RAW.mkdir(parents=True); FR.mkdir(exist_ok=True)
     audio = []
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={"width": 1920, "height": 1080}, record_video_dir=str(OUT),
+        ctx = await b.new_context(viewport={"width": 1920, "height": 1080}, record_video_dir=str(RAW),
                                   record_video_size={"width": 1920, "height": 1080})
         pg = await ctx.new_page()
         t_rec = time.time()
-        await pg.goto(f"file://{HERE}/stage.html")
+        await pg.goto(f"file://{HERE}/stage.html" + ("?upwork=1" if UP else ""))
         fr = pg.frame_locator("#frame")  # pre-select the burst-pipe call in the console used at the reveal
         await fr.locator("[data-f=transfer]").dispatch_event("click")
         await fr.locator(".call", has_text="Burst pipe").first.dispatch_event("click")
@@ -46,7 +50,8 @@ async def main():
                 await pg.wait_for_timeout(int(d * 1000))
 
         async def api(c): await pg.evaluate(f"api.{c}")
-        async def shot(n): await pg.screenshot(path=str(FR / f"{n}.png"))
+        async def shot(n):
+            if not UP: await pg.screenshot(path=str(FR / f"{n}.png"))
         def snd(f, t): audio.append((str(f), t))
         def j(x): return json.dumps(x)
 
@@ -113,26 +118,32 @@ async def main():
         t += 3.1
         await at(t); await api("callout('')"); await api("end()"); snd(L["narr"]["cta"]["file"], t + 0.3)
         await at(t + 1.5); await shot("6-end")
+        end_png, end_t = RAW / "end.png", now()  # crisp still laid over the recorder's smeared end card
+        await pg.screenshot(path=str(end_png))
         await at(t + 3.9)
         total = now()
         await ctx.close(); await b.close()
-    (HERE / "timeline.json").write_text(json.dumps({"audio": audio, "total": total}, indent=1))
-    raw = glob.glob(str(OUT / "*.webm"))[0]
-    mux(raw, audio, total, lead)
+    if not UP: (HERE / "timeline.json").write_text(json.dumps({"audio": audio, "total": total}, indent=1))
+    raw = glob.glob(str(RAW / "*.webm"))[0]
+    mux(raw, audio, total, lead, end_png, end_t)
+    shutil.rmtree(RAW, ignore_errors=True)
 
 
-def mux(raw, audio, total, lead):
+def mux(raw, audio, total, lead, end_png, end_t):
     ins, flt = ["-ss", str(lead), "-i", raw], []
+    n = len(audio) + 1  # input index of the end still
     for k, (f, t) in enumerate(audio):
         ins += ["-i", f]
         ms = int(t * 1000)
         flt.append(f"[{k + 1}:a]adelay={ms}|{ms},volume={0.35 if 'ring' in f or 'ding' in f else 1.0}[a{k}]")
     mix = "".join(f"[a{k}]" for k in range(len(audio))) + f"amix=inputs={len(audio)}:normalize=0[a]"
-    mp4 = OUT / "phone-agent.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(flt + [mix]),
-                    "-map", "0:v", "-map", "[a]", "-t", f"{total:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+    ins += ["-loop", "1", "-i", str(end_png)]
+    vid = f"[0:v][{n}:v]overlay=0:0:enable='gte(t,{end_t:.2f})'[v]"
+    mp4 = OUT / f"phone-agent{SUF}.mp4"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", ";".join(flt + [mix, vid]),
+                    "-map", "[v]", "-map", "[a]", "-t", f"{total:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p",
                     "-crf", "20", "-preset", "medium", "-c:a", "aac", "-b:a", "160k", str(mp4)], check=True)
-    gif = OUT / "phone-agent.gif"
+    gif = OUT / f"phone-agent{SUF}.gif"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(mp4), "-vf",
                     "fps=8,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96[p];[s1][p]paletteuse",
                     str(gif)], check=True)
