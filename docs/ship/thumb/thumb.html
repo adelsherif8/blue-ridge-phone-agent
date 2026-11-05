@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><title>thumb</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Instrument+Serif:ital@1&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{--paper:#F7F4EE;--paper2:#EFE9DC;--ink:#16130F;--panel:#1E1A15;--line:#3A3229;--grey:#6B655B;--red:#C63C22;--lift:#F2643F;--ok:#2F9E5B}
+*{box-sizing:border-box;margin:0}
+html,body{width:1000px;height:750px;overflow:hidden}
+body{background:var(--paper);font-family:Archivo,sans-serif;color:var(--ink);position:relative}
+.lbl{position:absolute;left:56px;top:46px;font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--red);display:flex;gap:12px;align-items:center}
+.lbl::before{content:"";width:28px;height:2px;background:var(--red)}
+.aa{position:absolute;right:56px;top:40px;height:30px;width:auto}
+h1{position:absolute;left:50px;top:84px;font-size:150px;font-weight:900;letter-spacing:-.055em;line-height:.86}
+h1 em{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;color:var(--red);letter-spacing:-.02em;font-size:172px;margin-left:22px}
+.sub{position:absolute;left:58px;top:376px;font:500 17px "IBM Plex Mono",monospace;color:var(--grey);letter-spacing:.01em}
+.band{position:absolute;left:0;right:0;top:440px;bottom:0;background:var(--ink);overflow:hidden}
+.band::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(242,100,63,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(242,100,63,.05) 1px,transparent 1px);background-size:32px 32px}
+.pipe{position:absolute;left:56px;right:56px;top:118px;display:flex;align-items:center}
+.node{flex:none;width:150px;height:118px;background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:16px;color:#F7F4EE}
+.node i{font-size:24px;color:#E4DCCB}
+.node b{display:block;font-size:19px;font-weight:700;margin-top:14px;letter-spacing:-.02em}
+.node span{font:12px "IBM Plex Mono",monospace;color:#ABA294}
+.node.hot{border-color:var(--lift);box-shadow:0 0 0 5px rgba(242,100,63,.14),0 0 40px rgba(242,100,63,.25)}
+.node.hot i{color:var(--lift)}
+.wire{flex:1;height:2px;background:var(--line);position:relative}
+.wire::after{content:"";position:absolute;left:50%;top:-5px;width:12px;height:12px;border-radius:50%;background:var(--lift);box-shadow:0 0 14px var(--lift)}
+.card{position:absolute;right:56px;top:372px;width:372px;background:#fff;border-radius:18px;padding:20px 22px;transform:rotate(2.5deg);box-shadow:0 30px 60px -20px rgba(22,19,15,.6),0 2px 8px rgba(22,19,15,.15);z-index:5}
+.card .k{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.08em;color:var(--grey);text-transform:uppercase;display:flex;justify-content:space-between}
+.card .t{font-size:27px;font-weight:800;letter-spacing:-.03em;margin-top:8px;display:flex;gap:12px;align-items:center}
+.card .t i{color:var(--ok);font-size:26px}
+.card .r{margin-top:12px;padding-top:12px;border-top:1px solid #E4DCCB;font-size:15px;font-weight:600;color:#3A342C;display:flex;gap:10px;align-items:center}
+.card .r i{color:#FF7A59}
+.card .r em{margin-left:auto;font-style:normal;color:var(--ok);font-size:14px}
+</style></head><body>
+<div class="lbl">AI phone agent · Twilio + Pipecat</div><svg class="aa" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1553 967"><defs><mask id="m"><rect width="100%" height="100%" fill="white"/><rect x="210.0" y="592.6" width="1132.8" height="96.4" fill="black"/></mask></defs><g fill="#16130F" mask="url(#m)"><path d="M140.0 827.0869140625 398.3046875 140.0H612.84619140625L871.607421875 827.0869140625H680.06591796875L639.19580078125 707.71630859375H364.8681640625L323.998046875 827.0869140625ZM408.58544921875 573.80419921875H595.5654296875L546.1298828125 429.10693359375Q542.1298828125 418.02001953125 536.901611328125 401.704833984375Q531.67333984375 385.3896484375 526.216796875 366.617919921875Q520.76025390625 347.84619140625 515.3037109375 329.117919921875Q509.84716796875 310.3896484375 505.390625 295.93310546875H498.76025390625Q493.84716796875 314.84619140625 486.43408203125 339.2158203125Q479.02099609375 363.58544921875 471.564453125 387.400634765625Q464.10791015625 411.2158203125 458.02099609375 429.10693359375Z"/><path d="M681.3894921875 827.0869140625 939.6941796875 140.0H1154.2356835937499L1412.9969140624999 827.0869140625H1221.4554101562499L1180.5852929687499 707.71630859375H906.25765625L865.3875390625 827.0869140625ZM949.97494140625 573.80419921875H1136.9549218749999L1087.5193749999999 429.10693359375Q1083.5193749999999 418.02001953125 1078.2911035156249 401.704833984375Q1073.0628320312499 385.3896484375 1067.6062890624999 366.617919921875Q1062.1497460937499 347.84619140625 1056.6932031249999 329.117919921875Q1051.2366601562499 310.3896484375 1046.7801171874999 295.93310546875H1040.1497460937499Q1035.2366601562499 314.84619140625 1027.8235742187499 339.2158203125Q1020.41048828125 363.58544921875 1012.9539453125 387.400634765625Q1005.49740234375 411.2158203125 999.41048828125 429.10693359375Z"/></g><rect x="210.0" y="592.6" width="1132.8" height="96.4" fill="#C63C22"/></svg>
+<h1>Answers<br>in <em>1.7 s.</em></h1>
+<div class="sub">median, simulated calls</div>
+<div class="card"><div class="k"><span>Booked on the call</span><span>BRP-1001</span></div>
+<div class="t"><i class="fa-solid fa-circle-check"></i>Tomorrow, 2 to 4 PM</div>
+<div class="r"><i class="fa-brands fa-hubspot"></i>HubSpot contact + meeting<em><i class="fa-solid fa-check" style="color:var(--ok)"></i> synced</em></div></div>
+<div class="band"><div class="pipe">
+<div class="node"><i class="fa-solid fa-tower-cell"></i><b>Twilio</b><span>phone line</span></div><div class="wire"></div>
+<div class="node"><i class="fa-solid fa-ear-listen"></i><b>Deepgram</b><span>hears</span></div><div class="wire"></div>
+<div class="node hot"><i class="fa-solid fa-brain"></i><b>GPT-4.1 mini</b><span>thinks + books</span></div><div class="wire"></div>
+<div class="node"><i class="fa-solid fa-wave-square"></i><b>Aura-2</b><span>speaks</span></div>
+</div></div>
+</body></html>
