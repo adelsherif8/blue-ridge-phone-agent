@@ -251,6 +251,7 @@ const api = {
   end(){ $("console").classList.remove("on"); $("end").classList.add("on"); clearInterval(clockT); },
 };
 window.api = api;
+if (new URLSearchParams(location.search).has("nocap")) { const st = document.createElement("style"); st.textContent = "#cap,#callout{display:none!important}"; document.head.appendChild(st); }
 if (new URLSearchParams(location.search).has("upwork")) document.querySelector("#end .foot span:last-child").remove();
 </script>
 </body>
