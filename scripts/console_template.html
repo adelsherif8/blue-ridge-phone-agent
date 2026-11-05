@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blue Ridge Call Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{
+  --base:#0f1419; --panel:#151c24; --panel2:#1b2430; --line:#26313f;
+  --ink:#eef1f8; --mute:#8b98ab; --dim:#5d6a7d;
+  --sec:#60a5fa; --acc:#f97316; --ok:#22c55e; --warn:#f5b84a; --bad:#ef4444;
+  --stt:#60a5fa; --llm:#a78bfa; --tts:#2dd4bf; --tool:#f97316; --wait:#3a4757;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--base);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;min-height:100vh}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121a22,var(--base))}
+.logo{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--panel2);color:var(--sec);border:1px solid var(--line)}
+header h1{font-size:15px;font-weight:600;letter-spacing:.2px}
+header .sub{color:var(--mute);font-size:12px}
+.live{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.stack{display:flex;gap:6px;flex-wrap:wrap}
+.stack span{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--mute)}
+.ticker{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--line)}
+.kpi{padding:12px 20px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi .k{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;display:flex;gap:6px;align-items:center}
+.kpi .v{font:600 22px "IBM Plex Mono",monospace;margin-top:2px}
+.kpi .v small{font-size:12px;color:var(--mute);font-weight:500;margin-left:4px}
+.kpi.hero .v{color:var(--acc)}
+main{display:grid;grid-template-columns:290px 1fr 360px;height:calc(100vh - 128px);min-height:560px}
+.pane{border-right:1px solid var(--line);overflow:auto}
+.pane:last-child{border-right:0}
+.ph{position:sticky;top:0;z-index:2;background:var(--base);padding:12px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px;display:flex;justify-content:space-between;align-items:center}
+.chips{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chip{font-size:11px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mute);cursor:pointer;font-family:inherit}
+.chip.on{background:var(--panel2);color:var(--ink);border-color:#3a4a5e}
+.call{padding:11px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;transition:background .15s}
+.call:hover{background:var(--panel)}
+.call.sel{background:var(--panel2);box-shadow:inset 3px 0 0 var(--acc)}
+.call .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:12px}
+.call .t{font-weight:500;font-size:13px}
+.call .m{font-size:11px;color:var(--dim)}
+.call .d{font-size:11px;color:var(--mute);text-align:right}
+.k-booked .ic{background:rgba(34,197,94,.12);color:var(--ok)}
+.k-transfer .ic{background:rgba(249,115,22,.14);color:var(--acc)}
+.k-callback .ic{background:rgba(245,184,74,.12);color:var(--warn)}
+.k-info .ic{background:rgba(96,165,250,.12);color:var(--sec)}
+.badge{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:4px 10px;border-radius:999px;font-weight:500}
+.b-booked{background:rgba(34,197,94,.12);color:var(--ok)}
+.b-transfer{background:rgba(249,115,22,.14);color:var(--acc)}
+.b-callback{background:rgba(245,184,74,.12);color:var(--warn)}
+.b-info{background:rgba(96,165,250,.12);color:var(--sec)}
+.callhead{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.callhead h2{font-size:16px;font-weight:600}
+.meta{display:flex;gap:16px;color:var(--mute);font-size:12px;margin-left:auto}
+.meta i{color:var(--dim);margin-right:4px}
+.tl{padding:18px 22px 40px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:78%;opacity:0;transform:translateY(8px);animation:in .35s ease forwards}
+@keyframes in{to{opacity:1;transform:none}}
+.msg .who{font-size:11px;color:var(--dim);margin-bottom:3px;display:flex;gap:8px;align-items:center}
+.bubble{padding:10px 13px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.msg.bot{align-self:flex-start}
+.msg.caller{align-self:flex-end}
+.msg.caller .bubble{background:#18283a;border-color:#22384f}
+.msg.caller .who{justify-content:flex-end}
+.lat{cursor:pointer;font-family:"IBM Plex Mono",monospace;font-size:11px;padding:1px 7px;border-radius:6px;background:var(--panel2);color:var(--sec);border:1px solid var(--line)}
+.lat.slow{color:var(--warn)}
+.lat.on{border-color:var(--acc);color:var(--acc)}
+.pii{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:1px 6px;border-radius:5px;background:#2a2233;color:#c4b5fd;border:1px dashed #5b4b7a;white-space:nowrap}
+.tool{align-self:stretch;margin:0 0 0 18px;border-left:2px solid var(--line);padding:2px 0 2px 14px;opacity:0;animation:in .35s ease forwards}
+.toolcard{background:#141a21;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.toolcard .n{color:var(--acc);font-weight:600}
+.toolcard .n i{margin-right:6px}
+.toolcard .a{color:var(--mute);margin-top:4px;word-break:break-word}
+.toolcard .r{margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.st{font-size:11px;padding:2px 8px;border-radius:999px}
+.st.ok{background:rgba(34,197,94,.12);color:var(--ok)}
+.st.no{background:rgba(239,68,68,.12);color:#f87171}
+.st.go{background:rgba(249,115,22,.14);color:var(--acc)}
+.side{padding:16px 18px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h3{font-size:12px;color:var(--mute);font-weight:500;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;justify-content:space-between}
+.big{font:600 30px "IBM Plex Mono",monospace}
+.big small{font-size:13px;color:var(--mute)}
+.wf{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.wrow{display:grid;grid-template-columns:118px 1fr 52px;gap:8px;align-items:center;font-size:12px}
+.wrow .l{color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrow .track{position:relative;height:12px;background:#121820;border-radius:4px}
+.wrow .bar{position:absolute;top:0;height:100%;border-radius:4px;width:0;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.wrow .s{font-family:"IBM Plex Mono",monospace;color:var(--ink);text-align:right}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--mute)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.split{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.split div{background:var(--panel2);border-radius:8px;padding:8px}
+.split .k{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.split .v{font:600 15px "IBM Plex Mono",monospace}
+.handoff{border-color:rgba(249,115,22,.45);background:linear-gradient(180deg,rgba(249,115,22,.08),var(--panel))}
+.handoff .q{font-size:13px;margin-top:6px}
+.handoff .steps{margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute)}
+.handoff .steps i{color:var(--acc);width:16px}
+.note{font-size:11px;color:var(--dim);line-height:1.5}
+.empty{color:var(--dim);font-size:12px}
+@media (max-width:1100px){main{grid-template-columns:240px 1fr}.pane.side-pane{display:none}.ticker{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:720px){main{grid-template-columns:1fr;height:auto}.pane{border-right:0}.list-pane{max-height:260px}.ticker{grid-template-columns:repeat(2,1fr)}.meta{margin-left:0}header{flex-wrap:wrap;padding:12px 16px}.msg{max-width:92%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i class="fa-solid fa-wrench"></i></div>
+  <div>
+    <h1>Blue Ridge Plumbing <span style="color:var(--dim);font-weight:400">/ phone agent console</span></h1>
+    <div class="sub">Every call: transcript, tool calls, hand-offs and latency per turn</div>
+  </div>
+  <div class="stack" style="margin-left:24px">
+    <span><i class="fa-solid fa-phone"></i> Twilio Media Streams</span>
+    <span><i class="fa-solid fa-diagram-project"></i> Pipecat</span>
+    <span><i class="fa-solid fa-ear-listen"></i> Deepgram</span>
+    <span><i class="fa-solid fa-brain"></i> gpt-4.1-mini</span>
+    <span><i class="fa-solid fa-address-book"></i> HubSpot</span>
+  </div>
+  <div class="live"><i class="fa-solid fa-database"></i>From redacted call records</div>
+</header>
+
+<section class="ticker" id="ticker"></section>
+
+<main>
+  <div class="pane list-pane">
+    <div class="ph"><span>Calls</span><span id="count" class="mono"></span></div>
+    <div class="chips" id="filters"></div>
+    <div id="list"></div>
+  </div>
+  <div class="pane">
+    <div class="callhead" id="head"></div>
+    <div class="tl" id="tl"></div>
+  </div>
+  <div class="pane side-pane">
+    <div class="ph"><span>Turn latency</span><span class="mono" style="color:var(--dim)">click a timing chip</span></div>
+    <div class="side" id="side"></div>
+  </div>
+</main>
+
+<script>
+const DATA = /*DATA*/null;
+const S = DATA.summary || {};
+const KIND_ICON = {booked:"fa-calendar-check", transfer:"fa-headset", callback:"fa-phone-volume", info:"fa-comment-dots"};
+const NICE = s => s.replace(/_/g," ").replace(/^\w/, c => c.toUpperCase());
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pii = s => esc(s).replace(/&lt;([A-Z_]+?)(?:_\d+)?&gt;/g, (_, t) =>
+  `<span class="pii" title="redacted before saving"><i class="fa-solid fa-lock" style="font-size:9px"></i> ${t.replace(/_SPOKEN|_/g," ").trim().toLowerCase()}</span>`);
+const COLORS = {endpointing_wait:"var(--wait)", turn_detection:"var(--wait)", transcription:"var(--stt)",
+  llm_inference:"var(--llm)", llm_tool_call:"var(--tool)", sentence_aggregation:"#64748b",
+  speech_synthesis:"var(--tts)", output_transport:"#94a3b8", pipeline:"#334155", first_request:"#475569"};
+
+function ticker(){
+  const k = (icon, label, v, unit, hero) => `<div class="kpi ${hero?"hero":""}"><div class="k"><i class="fa-solid ${icon}"></i>${label}</div><div class="v" data-to="${v}">0<small>${unit}</small></div></div>`;
+  const v = S.server_voice_to_voice || {}, c = DATA.calls;
+  const tr = c.filter(x => x.outcome.kind==="transfer").length, bk = c.filter(x => x.outcome.kind==="booked").length;
+  document.getElementById("ticker").innerHTML =
+    k("fa-bolt","Voice-to-voice median", v.median ?? 0, "s", true) +
+    k("fa-gauge-high","p95", v.p95 ?? 0, "s") +
+    k("fa-ear-listen","STT median", (S.stt_ttfb||{}).median ?? 0, "s") +
+    k("fa-wave-square","Voice first audio", (S.tts_ttfb||{}).median ?? 0, "s") +
+    k("fa-calendar-check","Jobs booked", bk, "") +
+    k("fa-headset","Live hand-offs", tr, "");
+  document.querySelectorAll(".kpi .v").forEach(el => {
+    const to = parseFloat(el.dataset.to), dec = String(el.dataset.to).includes(".") ? 2 : 0, unit = el.querySelector("small").outerHTML;
+    let t0 = null; const step = ts => { t0 ??= ts; const p = Math.min(1,(ts-t0)/900), e = 1-Math.pow(1-p,3);
+      el.innerHTML = (to*e).toFixed(dec) + unit; if (p<1) requestAnimationFrame(step); }; requestAnimationFrame(step);
+  });
+}
+
+let filter = "all", selected = 0;
+function list(){
+  const kinds = [["all","All"],["booked","Booked"],["transfer","Hand-offs"],["callback","Callbacks"],["info","Answered"]];
+  document.getElementById("filters").innerHTML = kinds.map(([k,l]) => `<button class="chip ${filter===k?"on":""}" data-f="${k}">${l}</button>`).join("");
+  document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; list(); });
+  const rows = DATA.calls.map((c,i) => [c,i]).filter(([c]) => filter==="all" || c.outcome.kind===filter);
+  document.getElementById("count").textContent = rows.length;
+  document.getElementById("list").innerHTML = rows.map(([c,i]) => `
+    <div class="call k-${c.outcome.kind} ${i===selected?"sel":""}" data-i="${i}">
+      <div class="ic"><i class="fa-solid ${KIND_ICON[c.outcome.kind]}"></i></div>
+      <div><div class="t">${NICE(c.scenario)}</div><div class="m">${esc(c.outcome.label)}</div></div>
+      <div class="d mono">${c.secs ? Math.round(c.secs)+"s" : ""}<br><span style="color:var(--dim)">${esc(c.caller||"hidden")}</span></div>
+    </div>`).join("");
+  document.querySelectorAll(".call").forEach(el => el.onclick = () => { selected = +el.dataset.i; list(); show(); });
+}
+
+function toolCard(t){
+  const r = t.result || {}, st = r.status || (r.open_windows ? `${r.open_windows.length} windows open` : "ok");
+  const cls = /^(Booked|Saved|Changed)/.test(st) || r.open_windows ? "ok" : /Transferring/.test(st) ? "go" : /Not|Unavailable|Already/.test(st) ? "no" : "ok";
+  const icon = t.name==="transfer_to_human" ? "fa-headset" : t.name==="check_slots" ? "fa-table-cells" : t.name==="book_job" ? "fa-calendar-plus" : "fa-gear";
+  const args = Object.entries(t.args||{}).map(([k,v]) => `${k}=${pii(typeof v==="string"?v:JSON.stringify(v))}`).join("  ");
+  const why = r.reason ? `<span style="color:var(--mute)">${esc(r.reason)}</span>` : r.job_id ? `<span class="mono" style="color:var(--mute)">${esc(r.job_id)}</span>` : "";
+  return `<div class="toolcard"><div class="n"><i class="fa-solid ${icon}"></i>${t.name}()</div><div class="a">${args}</div>
+    <div class="r"><span class="st ${cls}">${esc(st)}</span>${why}</div></div>`;
+}
+
+function show(){
+  const c = DATA.calls[selected]; if (!c) return;
+  document.getElementById("head").innerHTML = `<h2>${NICE(c.scenario)}</h2>
+    <span class="badge b-${c.outcome.kind}"><i class="fa-solid ${KIND_ICON[c.outcome.kind]}"></i>${esc(c.outcome.label)}</span>
+    <div class="meta"><span><i class="fa-solid fa-hashtag"></i>${esc(c.sid)}</span><span><i class="fa-solid fa-clock"></i>${c.secs?Math.round(c.secs):"-"} s</span>
+    <span><i class="fa-solid fa-phone"></i>${esc(c.caller||"hidden")}</span></div>`;
+  let d = 0, firstTurn = null;
+  document.getElementById("tl").innerHTML = c.lines.map((ln, i) => {
+    d += 0.07;
+    if (ln.role === "tool") return `<div class="tool" style="animation-delay:${d}s">${toolCard(ln)}</div>`;
+    let lat = "";
+    if (ln.turn){ const v = ln.turn.voice_to_voice_secs; firstTurn ??= i;
+      lat = `<span class="lat ${v>3?"slow":""}" data-l="${i}"><i class="fa-solid fa-stopwatch" style="font-size:9px"></i> ${v.toFixed(2)}s</span>`; }
+    const who = ln.role==="bot" ? `<i class="fa-solid fa-robot"></i> Sam (AI)` : `<i class="fa-solid fa-user"></i> Caller`;
+    return `<div class="msg ${ln.role}" style="animation-delay:${d}s"><div class="who">${who}${lat}</div><div class="bubble">${pii(ln.text)}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".lat").forEach(el => el.onclick = () => turn(+el.dataset.l));
+  const pick = c.lines.findIndex((l,i) => l.turn && l.turn.measured_from==="user_silence");
+  turn(pick >= 0 ? pick : firstTurn);
+}
+
+function turn(i){
+  const c = DATA.calls[selected], side = document.getElementById("side");
+  document.querySelectorAll(".lat").forEach(el => el.classList.toggle("on", +el.dataset.l===i));
+  const t = i!=null && c.lines[i] ? c.lines[i].turn : null;
+  let html = "";
+  if (t){
+    const cs = (t.contributions||[]).filter(x => x.duration_secs > 0.004);
+    const t0 = Math.min(...cs.map(x => x.start_time)), total = Math.max(t.voice_to_voice_secs, ...cs.map(x => x.start_time - t0 + x.duration_secs));
+    html += `<div class="card"><h3><span>${t.measured_from==="user_silence"?"Caller stops talking to bot audio":"Call connect to greeting"}</span></h3>
+      <div class="big">${t.voice_to_voice_secs.toFixed(2)}<small> s</small></div>
+      <div class="split"><div><div class="k">STT</div><div class="v">${t.ttfb.stt!=null?t.ttfb.stt.toFixed(2):"-"}</div></div>
+      <div><div class="k">LLM</div><div class="v">${t.ttfb.llm!=null?t.ttfb.llm.toFixed(2):"-"}</div></div>
+      <div><div class="k">Voice</div><div class="v">${t.ttfb.tts!=null?t.ttfb.tts.toFixed(2):"-"}</div></div></div>
+      <div class="wf">${cs.map(x => `<div class="wrow"><div class="l">${esc(x.label)}</div><div class="track"><div class="bar" style="left:${(x.start_time-t0)/total*100}%;background:${COLORS[x.key]||"#475569"}" data-w="${Math.max(1.5,x.duration_secs/total*100)}"></div></div><div class="s">${x.duration_secs.toFixed(2)}</div></div>`).join("")}</div>
+      <div class="legend"><span><i style="background:var(--stt)"></i>speech-to-text</span><span><i style="background:var(--llm)"></i>LLM</span><span><i style="background:var(--tool)"></i>tool</span><span><i style="background:var(--tts)"></i>voice</span></div>
+      ${(t.tools||[]).length?`<div class="note" style="margin-top:10px"><i class="fa-solid fa-gear"></i> tools this turn: ${t.tools.map(x=>esc(x.name)).join(", ")}</div>`:""}</div>`;
+  } else html += `<div class="card"><div class="empty">No timing recorded for this turn.</div></div>`;
+  if (c.transfer){
+    html += `<div class="card handoff"><h3><span><i class="fa-solid fa-headset"></i> Live hand-off</span><span style="color:var(--acc)">${esc(c.transfer.reason.replace(/_/g," "))}</span></h3>
+      <div class="q">${pii(c.transfer.summary)}</div>
+      <div class="steps"><div><i class="fa-solid fa-volume-high"></i>Bot says one hold line</div><div><i class="fa-solid fa-right-left"></i>Twilio calls.update: Say + Dial on-call phone</div>
+      <div><i class="fa-solid fa-ear-listen"></i>On-call person hears this summary first</div><div><i class="fa-solid fa-link"></i>Bot leaves, caller stays connected</div></div></div>`;
+  }
+  html += `<div class="card"><h3><span>This call</span></h3><div class="note mono">model ${esc(c.model)}<br>voice ${esc(c.voice)}<br>first greeting ${c.first!=null?c.first.toFixed(2)+" s":"-"}<br>bot spoke ${c.chars??"-"} characters</div></div>
+    <div class="card"><div class="note"><i class="fa-solid fa-flask"></i> Test calls are simulated: an LLM caller speaks over Twilio's Media Streams protocol to the real server, so timings leave out the phone network. HubSpot sync is off for test calls. Names, numbers and addresses are redacted before saving. ${DATA.total?`Last 20-call run: ${DATA.passed}/${DATA.total} passed.`:""}</div></div>`;
+  side.innerHTML = html;
+  requestAnimationFrame(() => document.querySelectorAll(".bar").forEach(b => b.style.width = b.dataset.w + "%"));
+}
+
+ticker(); list(); show();
+</script>
+</body>
+</html>

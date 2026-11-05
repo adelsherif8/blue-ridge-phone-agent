@@ -97,7 +97,21 @@ in `app/bot.py`; OpenAI voice latency was not measured.
   are covered by tests and simulated calls, but no live call was bridged to a phone.
 - **Speech-to-text errors reach the CRM.** A misheard name ends up in the transfer summary and the
   contact record. The bot reads addresses back, but not names.
+- **Redaction misses names it was not told about.** A caller's first name inside a transfer summary
+  ("Marcus has a burst pipe...") can survive redaction; addresses and phone numbers in the same line are caught.
+- **The bot sometimes calls `book_job` too early.** In some test calls it tried to book before checking the
+  schedule or collecting the caller's details. The code guardrail refused every one of these, and the bot
+  then checked the schedule as it should.
 - **Demo schedule.** The schedule lives in memory and resets when the server restarts.
+
+## Call console
+
+`docs/console.html` is a static console built from the redacted call records
+(`uv run python scripts/build_console.py`): call list with outcomes, the transcript with each tool call
+and its result in place, redacted fields shown as chips, live hand-off summaries, and a latency waterfall
+for every turn (endpointing, transcription, LLM, tool, speech synthesis).
+
+![Call console](docs/console.png)
 
 ## Run it
 
