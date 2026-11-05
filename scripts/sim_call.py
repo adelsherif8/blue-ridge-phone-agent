@@ -35,9 +35,12 @@ SILENCE = b"\xff" * FRAME
 SILENCE_GAP = 2.0  # seconds of bot silence that end its turn
 TURN_TIMEOUT = 25.0
 MAX_TURNS = 14
+FILLER_WAIT = 6.0  # extra seconds to wait for the answer after a filler line
+FILLER_END = re.compile(r"(checking the board|booking that in|noting that for the office|moving that)\W*$", re.I)
 CALLER_RULES = (
     "You are a person on the phone with Blue Ridge Plumbing. Speak in one or two short spoken sentences, no "
-    "symbols. Answer only what is asked. Stick to your role. Never hang up while waiting for an answer. When the "
+    "symbols. Answer only what is asked. Stick to your role. Never hang up while waiting for an answer. Do not say goodbye until the agent has confirmed your booking "
+    "with a day and time, transferred you, or clearly said it cannot help. When the "
     "agent has finished and you have said goodbye, end your line with [HANGUP]."
 )
 oai = AsyncOpenAI()
@@ -114,13 +117,24 @@ async def run(scenario: dict, port: int, call_sid: str = "CAsimulated", client_t
                 await asyncio.sleep(0.02)
 
         async def bot_turn() -> str:
-            """Keep the line open with silence until the bot has spoken and gone quiet."""
+            """Keep the line open with silence until the bot has spoken and gone quiet.
+
+            A turn that ends on a filler ("One sec, booking that in.") is not over: a person waits for the
+            result, so keep listening up to FILLER_WAIT more seconds instead of talking over the answer."""
             start = time.monotonic()
             inbox.clear()
+            extended = False
             while time.monotonic() - start < TURN_TIMEOUT:
                 await send(SILENCE * 10)
                 if inbox and time.monotonic() - last_audio[0] > SILENCE_GAP:
-                    break
+                    text = stt_mulaw(bytes(inbox))
+                    if extended or not FILLER_END.search(text):
+                        return text
+                    extended, mark = True, last_audio[0]
+                    while time.monotonic() - mark < FILLER_WAIT and last_audio[0] == mark:
+                        await send(SILENCE * 10)
+                    if last_audio[0] == mark:
+                        return text
             return stt_mulaw(bytes(inbox))
 
         async def say(audio: bytes):

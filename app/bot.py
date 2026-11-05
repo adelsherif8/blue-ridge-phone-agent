@@ -76,6 +76,12 @@ async def run_bot(transport, serializer, websocket, runner_args: RunnerArguments
     calllog = CallLog(call_sid, caller_id, scenario)
     # Simulated test calls get a fresh board so earlier runs cannot fill up the windows.
     board = Board() if scenario else BOARD
+    if scenario:  # test calls only: apply the scenario's board setup (e.g. a window already full)
+        from evals.scenarios import SCENARIOS
+        setup = next((sc.get("setup", {}) for sc in SCENARIOS if sc["id"] == scenario), {})
+        for day, window in setup.get("close", []):
+            for truck in board.slots[day]:
+                board.slots[day][truck][window] = "Booked"
     crm = CRMSync(HubSpot(os.environ["HUBSPOT_TOKEN"]) if os.getenv("HUBSPOT_TOKEN") else None)
     tracker = SpeakingTracker()
     background: list[asyncio.Task] = []
