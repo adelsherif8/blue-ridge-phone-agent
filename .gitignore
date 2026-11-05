@@ -8,3 +8,6 @@ recordings/
 .pytest_cache/
 evals/results/
 data/calls/
+docs/video/audio/
+docs/video/out/
+docs/video/frames/

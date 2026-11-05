@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pipeline Stage</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{--base:#0f1419;--panel:#151c24;--panel2:#1b2430;--line:#26313f;--ink:#eef1f8;--mute:#8b98ab;--dim:#5d6a7d;
+  --sec:#60a5fa;--acc:#f97316;--ok:#22c55e;--bad:#ef4444;--llm:#a78bfa;--tts:#2dd4bf}
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--base);color:var(--ink);font-family:"IBM Plex Sans",sans-serif}
+.mono{font-family:"IBM Plex Mono",monospace}
+#world{position:absolute;inset:0;transform-origin:0 0;transition:transform 1.1s cubic-bezier(.2,.8,.2,1)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(96,165,250,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.05) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse at 50% 30%,#000 30%,transparent 80%)}
+/* pipeline */
+#pipe{position:absolute;left:70px;right:70px;top:64px;height:250px;opacity:0;transform:translateY(-20px);transition:.7s}
+#pipe.on{opacity:1;transform:none}
+.node{position:absolute;top:40px;width:250px;height:150px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px;transition:border-color .25s,box-shadow .25s,opacity .4s}
+.node .h{display:flex;gap:12px;align-items:center;font-weight:600;font-size:19px}
+.node .h i{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--panel2);color:var(--sec);font-size:18px}
+.node .s{font-size:13px;color:var(--dim);margin-top:4px;font-family:"IBM Plex Mono",monospace}
+.node .live{margin-top:12px;font-size:14px;color:var(--mute);height:40px;overflow:hidden;line-height:1.4}
+.node.hot{border-color:var(--sec);box-shadow:0 0 0 4px rgba(96,165,250,.12),0 0 40px rgba(96,165,250,.18)}
+.node.hot.llm{border-color:var(--llm);box-shadow:0 0 0 4px rgba(167,139,250,.14),0 0 40px rgba(167,139,250,.2)}
+.node.hot.tts{border-color:var(--tts);box-shadow:0 0 0 4px rgba(45,212,191,.14),0 0 40px rgba(45,212,191,.2)}
+.node.off{opacity:.28}
+.wire{position:absolute;top:114px;height:2px;background:var(--line);overflow:visible}
+.pk{position:absolute;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--sec);box-shadow:0 0 12px var(--sec);opacity:0}
+.pk.go{animation:pk .55s linear forwards}
+@keyframes pk{0%{left:0;opacity:1}100%{left:100%;opacity:1}}
+#watch{position:absolute;right:70px;top:8px;display:flex;gap:10px;align-items:center;font-family:"IBM Plex Mono",monospace;font-size:16px;color:var(--mute)}
+#watch b{font-size:30px;color:var(--ink);font-weight:600;min-width:120px;text-align:right}
+#watch.flash b{color:var(--acc)}
+#tag{position:absolute;left:70px;top:16px;font-size:14px;color:var(--dim);display:flex;gap:10px;align-items:center}
+#tag .pill{border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--mute)}
+#tools{position:absolute;left:70px;right:70px;top:300px;display:flex;flex-direction:row;gap:12px;justify-content:center}
+.tc{font-family:"IBM Plex Mono",monospace;font-size:14px;background:#141a21;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:8px 12px;opacity:0;transform:translateY(-8px);transition:.35s}
+.tc.on{opacity:1;transform:none}
+.tc .n{color:var(--acc);font-weight:600}
+.tc .r{font-size:12px;margin-top:3px}
+.tc.bad{border-left-color:var(--bad)} .tc.bad .r{color:#f87171}
+.tc .r.ok{color:var(--ok)}
+/* lower area */
+#talk{position:absolute;left:70px;top:420px;width:860px;height:590px;background:var(--panel);border:1px solid var(--line);border-radius:22px;overflow:hidden;opacity:0;transition:.6s}
+#talk.on{opacity:1}
+.th{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--line)}
+.th .av{width:46px;height:46px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;color:var(--sec);font-size:18px}
+.th .nm{font-weight:600;font-size:19px}
+.th .sb{font-size:13px;color:var(--mute);font-family:"IBM Plex Mono",monospace}
+.th .tm{margin-left:auto;font-family:"IBM Plex Mono",monospace;color:var(--mute);font-size:16px}
+.th .rec{width:10px;height:10px;border-radius:50%;background:var(--bad);animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+#msgs{padding:22px 24px;display:flex;flex-direction:column;gap:14px;justify-content:flex-end;height:500px;overflow:hidden}
+.m{max-width:80%;font-size:21px;line-height:1.4;padding:13px 17px;border-radius:16px;opacity:0;transform:translateY(10px);animation:in .35s forwards}
+@keyframes in{to{opacity:1;transform:none}}
+.m.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+.m.cal{align-self:flex-end;background:#18283a;border:1px solid #22384f}
+.m.sys{align-self:center;font-size:15px;color:var(--acc);background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.35);font-family:"IBM Plex Mono",monospace}
+.m .w{font-size:12px;color:var(--dim);display:block;margin-bottom:3px;font-family:"IBM Plex Mono",monospace}
+#out{position:absolute;left:990px;top:420px;width:860px;height:590px;opacity:0;transition:.6s}
+#out.on{opacity:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px 24px}
+.card h3{font-size:14px;color:var(--mute);text-transform:uppercase;letter-spacing:.8px;font-weight:500;display:flex;justify-content:space-between;margin-bottom:16px}
+.board{display:grid;grid-template-columns:150px repeat(3,1fr);gap:8px;font-size:15px}
+.board .hd{color:var(--dim);font-family:"IBM Plex Mono",monospace;font-size:13px;text-align:center}
+.board .tk{color:var(--mute);display:flex;align-items:center;gap:8px}
+.slot{height:52px;border-radius:10px;border:1px dashed var(--line);display:grid;place-items:center;font-size:13px;color:var(--dim);transition:.35s;font-family:"IBM Plex Mono",monospace}
+.slot.full{background:#1a212b;border-style:solid;color:var(--dim)}
+.slot.open{border-color:rgba(96,165,250,.6);color:var(--sec);background:rgba(96,165,250,.06)}
+.slot.won{background:rgba(34,197,94,.14);border:1px solid var(--ok);color:var(--ok);font-weight:600;transform:scale(1.04)}
+#hub{margin-top:18px;display:flex;gap:18px;align-items:center;opacity:0;transform:translateX(30px);transition:.5s}
+#hub.on{opacity:1;transform:none}
+#hub .lg{width:56px;height:56px;border-radius:14px;background:#ff7a59;display:grid;place-items:center;color:#fff;font-size:24px}
+#hub .t{font-weight:600;font-size:19px}
+#hub .d{font-size:14px;color:var(--mute);font-family:"IBM Plex Mono",monospace;margin-top:3px}
+#hub .ok{margin-left:auto;color:var(--ok);font-size:15px;display:flex;gap:8px;align-items:center}
+/* handoff */
+#hand{position:absolute;left:990px;top:420px;width:860px;height:590px;opacity:0;transition:.6s;pointer-events:none}
+#hand.on{opacity:1}
+.ph{position:absolute;top:150px;width:250px;height:360px;border-radius:38px;background:#0b0f14;border:2px solid #2b3644;padding:26px 20px;text-align:center}
+.ph .ic{width:84px;height:84px;margin:30px auto 18px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;font-size:32px;color:var(--sec)}
+.ph .nm{font-weight:600;font-size:20px}
+.ph .st{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--mute);margin-top:6px}
+#tech.ring .ic{color:var(--acc);animation:rg .5s infinite}
+@keyframes rg{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+#tech.up .ic{color:var(--ok);animation:none}
+#bridge{position:absolute;left:250px;top:330px;width:360px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--sec),var(--ok));transform:scaleX(0);transform-origin:left;transition:transform .8s}
+#bridge.on{transform:scaleX(1)}
+#whisper{position:absolute;left:0;right:0;top:0;background:linear-gradient(180deg,rgba(249,115,22,.12),var(--panel));border:1px solid rgba(249,115,22,.5);border-radius:16px;padding:16px 20px;font-size:17px;opacity:0;transform:translateY(16px);transition:.5s}
+#whisper.on{opacity:1;transform:none}
+#whisper .k{font-size:12px;color:var(--acc);font-family:"IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+/* overlays */
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .6s;background:var(--base)}
+.scene.on{opacity:1}
+#hook .num{font-family:"Space Grotesk",sans-serif;font-size:330px;font-weight:700;line-height:.9;letter-spacing:-12px;color:var(--ink)}
+#hook .num span{color:var(--acc)}
+#hook .lab{font-size:30px;color:var(--mute);margin-top:22px;font-family:"IBM Plex Mono",monospace}
+#hook .vs{display:flex;gap:40px;margin-top:60px;font-size:34px;font-weight:600;opacity:0;transition:.6s}
+#hook .vs.on{opacity:1}
+#hook .vs .a{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--bad)}
+#hook .vs .b{color:var(--ink)} #hook .vs .b i{color:var(--acc)}
+#cap{position:absolute;left:50%;bottom:46px;transform:translate(-50%,20px);background:rgba(15,20,25,.92);border:1px solid var(--line);border-radius:14px;padding:14px 26px;font-size:26px;font-weight:600;opacity:0;transition:.35s;white-space:nowrap;z-index:20}
+#cap.on{opacity:1;transform:translate(-50%,0)}
+#cap i{color:var(--acc);margin-right:10px}
+#callout{position:absolute;background:var(--acc);color:#111;font-weight:700;font-size:22px;padding:12px 18px;border-radius:12px;box-shadow:0 12px 40px rgba(249,115,22,.35);opacity:0;transition:opacity .3s;z-index:30;max-width:560px}
+#callout.on{opacity:1}
+#console{position:absolute;inset:0;opacity:0;transition:opacity .7s;background:var(--base);pointer-events:none}
+#console.on{opacity:1}
+#console .fr{position:absolute;left:90px;top:70px;width:1740px;height:940px;border-radius:16px;overflow:hidden;border:1px solid #2b3644;box-shadow:0 40px 120px rgba(0,0,0,.6);transform-origin:70% 40%;transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
+#console .bar{height:40px;background:#1a212b;display:flex;align-items:center;gap:8px;padding:0 16px}
+#console .bar i{width:12px;height:12px;border-radius:50%;background:#3a4553}
+#console .bar span{margin-left:16px;font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--dim)}
+#console iframe{width:1740px;height:900px;border:0;background:var(--base)}
+#end{background:radial-gradient(ellipse at 30% 40%,#16202b,var(--base) 70%);align-items:flex-start;padding-left:160px}
+#end h1{font-family:"Space Grotesk",sans-serif;font-size:96px;line-height:1;letter-spacing:-3px;max-width:1200px}
+#end h1 span{color:var(--acc)}
+#end .who{margin-top:44px;font-size:30px;font-weight:600}
+#end .ti{font-size:22px;color:var(--mute);margin-top:6px}
+#end .chips{display:flex;gap:12px;margin-top:34px}
+#end .chips span{border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:19px;color:var(--mute);background:var(--panel)}
+#end .chips i{color:var(--sec);margin-right:8px}
+#end .gh{margin-top:30px;font-family:"IBM Plex Mono",monospace;font-size:22px;color:var(--sec)}
+#end .stats{position:absolute;right:160px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:26px}
+#end .st{border-left:3px solid var(--line);padding-left:22px}
+#end .st b{display:block;font:600 54px "IBM Plex Mono",monospace}
+#end .st b.a{color:var(--acc)}
+#end .st span{font-size:19px;color:var(--mute)}
+#note{position:absolute;left:70px;bottom:18px;font-size:13px;color:var(--dim);font-family:"IBM Plex Mono",monospace;z-index:25}
+</style>
+</head>
+<body>
+<div id="world">
+  <div class="grid"></div>
+  <div id="tag"><i class="fa-solid fa-wrench" style="color:var(--sec)"></i><span>Blue Ridge Plumbing · AI phone agent</span><span class="pill" id="ctx">Call 1 · routine booking</span></div>
+  <div id="watch"><i class="fa-solid fa-stopwatch"></i><span>reply in</span><b id="wv">0.00 s</b></div>
+  <div id="pipe">
+    <div class="node" id="n0" style="left:0"><div class="h"><i class="fa-solid fa-user"></i>Caller</div><div class="s">phone line</div><div class="live" id="l0"></div></div>
+    <div class="node" id="n1" style="left:345px"><div class="h"><i class="fa-solid fa-tower-cell"></i>Twilio</div><div class="s">Media Streams · WebSocket</div><div class="live" id="l1">8 kHz audio in / out</div></div>
+    <div class="node" id="n2" style="left:690px"><div class="h"><i class="fa-solid fa-ear-listen"></i>Deepgram</div><div class="s">speech-to-text</div><div class="live" id="l2"></div></div>
+    <div class="node llm" id="n3" style="left:1035px"><div class="h"><i class="fa-solid fa-brain" style="color:var(--llm)"></i>gpt-4.1-mini</div><div class="s">Pipecat · tools</div><div class="live" id="l3"></div></div>
+    <div class="node tts" id="n4" style="left:1380px"><div class="h"><i class="fa-solid fa-wave-square" style="color:var(--tts)"></i>Aura-2</div><div class="s">voice</div><div class="live" id="l4"></div></div>
+    <div class="wire" style="left:250px;width:95px"><div class="pk" id="w0"></div></div>
+    <div class="wire" style="left:595px;width:95px"><div class="pk" id="w1"></div></div>
+    <div class="wire" style="left:940px;width:95px"><div class="pk" id="w2"></div></div>
+    <div class="wire" style="left:1285px;width:95px"><div class="pk" id="w3"></div></div>
+  </div>
+  <div id="tools"></div>
+  <div id="talk">
+    <div class="th"><div class="av"><i class="fa-solid fa-phone"></i></div><div><div class="nm" id="cn">Incoming call</div><div class="sb" id="cs">***0199</div></div><div class="tm"><span class="rec" style="display:inline-block;margin-right:8px"></span><span id="clock">0:00</span></div></div>
+    <div id="msgs"></div>
+  </div>
+  <div id="out">
+    <div class="card">
+      <h3><span><i class="fa-solid fa-table-cells"></i> Schedule · tomorrow afternoon</span><span class="mono" style="color:var(--dim)">check_slots / book_job</span></h3>
+      <div class="board">
+        <div></div><div class="hd">12 – 2 PM</div><div class="hd">2 – 4 PM</div><div class="hd">4 – 6 PM</div>
+        <div class="tk"><i class="fa-solid fa-truck"></i>Mike · truck 1</div><div class="slot full">booked</div><div class="slot" id="s12">–</div><div class="slot" id="s13">–</div>
+        <div class="tk"><i class="fa-solid fa-truck"></i>Dave · truck 2</div><div class="slot full">booked</div><div class="slot full">booked</div><div class="slot" id="s23">–</div>
+        <div class="tk"><i class="fa-solid fa-truck"></i>Luis · truck 3</div><div class="slot full">booked</div><div class="slot full">booked</div><div class="slot full">booked</div>
+      </div>
+    </div>
+    <div class="card" id="hub" style="margin-top:18px">
+      <div class="lg"><i class="fa-brands fa-hubspot"></i></div>
+      <div><div class="t">HubSpot · contact + meeting</div><div class="d">upsert by phone · meeting linked (association 200)</div></div>
+      <div class="ok"><i class="fa-solid fa-circle-check"></i>synced</div>
+    </div>
+  </div>
+  <div id="hand">
+    <div class="ph" id="cal" style="left:0"><div class="ic"><i class="fa-solid fa-user"></i></div><div class="nm">Caller</div><div class="st" id="calst">on hold</div></div>
+    <div id="bridge"></div>
+    <div class="ph" id="tech" style="left:610px"><div class="ic"><i class="fa-solid fa-user-gear"></i></div><div class="nm">On-call technician</div><div class="st" id="techst">verified number</div></div>
+    <div id="whisper"><div class="k"><i class="fa-solid fa-ear-listen"></i> Spoken to the technician first</div>Emergency. Caller has a burst pipe spraying water in the basement.</div>
+  </div>
+</div>
+<div id="note">Lines from recorded test calls, re-voiced · timings are the measured values for each turn</div>
+<div id="cap"></div>
+<div id="callout"></div>
+<div class="scene" id="hook">
+  <div class="num">1.7<span>s</span></div>
+  <div class="lab">median reply time · measured over 20 test calls</div>
+  <div class="vs" id="vs"><span class="a">rented black box</span><span class="b"><i class="fa-solid fa-arrow-right"></i> a pipeline you own</span></div>
+</div>
+<div id="console"><div class="fr" id="cfr"><div class="bar"><i></i><i></i><i></i><span>blue-ridge-phone-agent / docs / console.html</span></div><iframe id="frame" src="../console.html"></iframe></div></div>
+<div class="scene" id="end">
+  <h1>Want your own <span>voice stack</span>, not a rented one?</h1>
+  <div class="who">Adel Atya</div>
+  <div class="ti">AI Voice Agent Engineer</div>
+  <div class="chips"><span><i class="fa-solid fa-diagram-project"></i>Pipecat</span><span><i class="fa-solid fa-tower-cell"></i>Twilio</span><span><i class="fa-solid fa-ear-listen"></i>Deepgram</span><span><i class="fa-solid fa-brain"></i>OpenAI</span><span><i class="fa-brands fa-hubspot"></i>HubSpot</span></div>
+  <div class="stats">
+    <div class="st"><b class="a">1.7 s</b><span>median reply, 20 test calls</span></div>
+    <div class="st"><b>5 tools</b><span>slots, booking, rescheduling, callback, live transfer</span></div>
+    <div class="st"><b>98 tests</b><span>unit tests in CI, plus 19 call scenarios</span></div>
+  </div>
+  <div class="gh"><i class="fa-brands fa-github"></i> github.com/adelsherif8/blue-ridge-phone-agent</div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let clockT = null, clock0 = 0;
+const api = {
+  hook(s){ $("hook").classList.add("on"); if (s===2) $("vs").classList.add("on"); },
+  stage(){ $("hook").classList.remove("on"); $("pipe").classList.add("on"); $("talk").classList.add("on"); $("out").classList.add("on"); },
+  ctx(t){ $("ctx").textContent = t; },
+  call(name, sub){ $("cn").textContent = name; $("cs").textContent = sub; $("msgs").innerHTML = ""; clock0 = Date.now();
+    clearInterval(clockT); clockT = setInterval(() => { const s = Math.floor((Date.now()-clock0)/1000); $("clock").textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }, 250); },
+  say(who, text){
+    const bot = who === "sam" || who === "twilio";
+    const label = who === "sam" ? "Sam (AI)" : who === "twilio" ? "Twilio <Say>" : "Caller";
+    const d = document.createElement("div"); d.className = "m " + (bot ? "bot" : "cal");
+    d.innerHTML = `<span class="w">${label}</span>${text}`; $("msgs").appendChild(d);
+    while ($("msgs").children.length > 4) $("msgs").firstChild.remove();
+    ["n0","n1","n2","n3","n4"].forEach(n => $(n).classList.remove("hot"));
+    if (bot){ $("n4").classList.add("hot"); $("n1").classList.add("hot"); $("l4").textContent = "streaming audio"; api.pkt([3]); }
+    else { $("n0").classList.add("hot"); $("l0").textContent = "speaking"; $("l2").textContent = text.split(" ").slice(0,7).join(" ") + "..."; api.pkt([0,1]); }
+  },
+  sys(text){ const d = document.createElement("div"); d.className = "m sys"; d.innerHTML = text; $("msgs").appendChild(d); while ($("msgs").children.length > 4) $("msgs").firstChild.remove(); },
+  think(){ ["n0","n1","n4"].forEach(n => $(n).classList.remove("hot")); $("n2").classList.add("hot"); api.pkt([1,2]);
+    setTimeout(() => { $("n2").classList.remove("hot"); $("n3").classList.add("hot"); $("l3").textContent = "first token..."; }, 350); },
+  pkt(ws){ ws.forEach((w,i) => setTimeout(() => { const p = $("w"+w); p.classList.remove("go"); void p.offsetWidth; p.classList.add("go"); }, i*200)); },
+  watch(v){ const el = $("wv"), t0 = performance.now(), dur = 600; $("watch").classList.add("flash");
+    const step = ts => { const p = Math.min(1,(ts-t0)/dur); el.textContent = (v*p).toFixed(2)+" s"; if (p<1) requestAnimationFrame(step); else setTimeout(()=>$("watch").classList.remove("flash"),900); };
+    requestAnimationFrame(step); },
+  tool(name, res, cls){ const d = document.createElement("div"); d.className = "tc " + (cls||"");
+    d.innerHTML = `<div class="n">${name}</div><div class="r ${cls==="bad"?"":"ok"}">${res}</div>`; $("tools").appendChild(d);
+    while ($("tools").children.length > 4) $("tools").firstChild.remove();
+    requestAnimationFrame(() => d.classList.add("on")); $("l3").textContent = "calling " + name.split("(")[0]; },
+  clearTools(){ $("tools").innerHTML = ""; },
+  open(){ ["s12","s13","s23"].forEach(s => { $(s).classList.add("open"); $(s).textContent = "open"; }); },
+  book(){ const s = $("s12"); s.classList.remove("open"); s.classList.add("won"); s.textContent = "BRP-1001 · Ana"; $("hub").classList.add("on"); },
+  emergency(){ $("out").classList.remove("on"); $("hand").classList.add("on"); },
+  ringTech(){ $("tech").classList.add("ring"); $("techst").textContent = "ringing"; $("n3").classList.remove("hot"); },
+  whisper(){ $("whisper").classList.add("on"); },
+  bridge(){ $("tech").classList.remove("ring"); $("tech").classList.add("up"); $("techst").textContent = "connected"; $("calst").textContent = "connected";
+    $("bridge").classList.add("on"); ["n2","n3","n4"].forEach(n => { $(n).classList.remove("hot"); $(n).classList.add("off"); });
+    $("l3").textContent = "bot left the call"; },
+  cap(t, icon){ const c = $("cap"); if (!t){ c.classList.remove("on"); return; } c.innerHTML = `<i class="fa-solid ${icon||"fa-circle-check"}"></i>${t}`; c.classList.add("on"); },
+  callout(t, x, y){ const c = $("callout"); if (!t){ c.classList.remove("on"); return; } c.textContent = t; c.style.left = x+"px"; c.style.top = y+"px"; c.classList.add("on"); },
+  console(){ $("console").classList.add("on"); $("note").style.display = "none"; },
+  czoom(s){ $("cfr").style.transform = `scale(${s})`; },
+  end(){ $("console").classList.remove("on"); $("end").classList.add("on"); clearInterval(clockT); },
+};
+window.api = api;
+</script>
+</body>
+</html>
