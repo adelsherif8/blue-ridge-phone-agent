@@ -65,6 +65,7 @@ Your own voice stack, not a rented one. The 60-second walkthrough is above.
 First comment:
 ```
 The call console with the redacted test calls, every turn timed: adelatya.com/voice-agent-engineer/phone-agent/
+Code: github.com/adelsherif8/blue-ridge-phone-agent
 ```
 
 ## Post 2 · Latency
@@ -93,6 +94,7 @@ Swipe through for where every second goes.
 First comment:
 ```
 Every turn's timing waterfall, in the call console: adelatya.com/voice-agent-engineer/phone-agent/
+Code: github.com/adelsherif8/blue-ridge-phone-agent
 ```
 
 ## Post 3 · Live hand-off
@@ -122,6 +124,7 @@ Would your after-hours line handle this call?
 First comment:
 ```
 The same call, with the transfer reason and summary, in the call console: adelatya.com/voice-agent-engineer/phone-agent/
+Code: github.com/adelsherif8/blue-ridge-phone-agent
 ```
 
 ## Post 4 · Guardrails / never makes things up
@@ -152,6 +155,7 @@ Swipe for the five rules.
 First comment:
 ```
 The refused bookings are visible call by call in the console: adelatya.com/voice-agent-engineer/phone-agent/
+Code: github.com/adelsherif8/blue-ridge-phone-agent
 ```
 
 ## Post 5 · Privacy + call console
@@ -181,10 +185,11 @@ If you run a call team: what do you check first when a call goes wrong?
 First comment:
 ```
 Open the console yourself (test calls, all redacted): adelatya.com/voice-agent-engineer/phone-agent/
+Code: github.com/adelsherif8/blue-ridge-phone-agent
 ```
 
 ## Assets in this folder
 - `carousel-latency.pdf`, `carousel-guardrails.pdf`: upload as a Document; set the document title to the first slide's headline.
 - `vertical-handoff-15s.mp4`: 1080x1920, 14.4 s, built by `make_vertical.py` from `build.py --nocap`.
 - Rebuild everything: `build.py --nocap`, then `make_vertical.py` and `make_carousels.py` (voicedesk .venv python).
-- After Step 7, if the repo is public, add `github.com/adelsherif8/blue-ridge-phone-agent` to the first comments.
+- The repo is public (2026-11-06): each first comment also links the code.
